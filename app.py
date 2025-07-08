@@ -41,13 +41,17 @@ with st.container():
 🧠 Даже при **65% убыточных сделках** можно выжить, если соблюдать соотношение риска и прибыли!
 """)
 
-if st.button("🚀 Начать симуляцию"):
+st.markdown("---")
+st.markdown("<h3 style='text-align: center;'>🚀 <b>Начать симуляцию</b></h3>", unsafe_allow_html=True)
+start = st.button("▶️ Старт", use_container_width=True)
+
+if start:
     st.subheader("📊 Результаты симуляции")
     data, balances, liq_hits, liq_steps, drawdowns = run_simulation(
         initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct
     )
 
-        # === Метрики
+    # === Метрики
     st.markdown("### 📈 Общая статистика")
     with st.container():
         col1, col2, col3 = st.columns(3)
