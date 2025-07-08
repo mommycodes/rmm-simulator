@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from simulator import run_simulation
 from visualizations import plot_simulations, plot_best_worst, plot_distribution, plot_liquidation_distribution, plot_probability_heatmap
 
@@ -46,10 +47,23 @@ st.markdown("<h3 style='text-align: center;'>🚀 <b>Начать симуляц
 start = st.button("▶️ Старт", use_container_width=True)
 
 if start:
-    st.subheader("📊 Результаты симуляции")
     data, balances, liq_hits, liq_steps, drawdowns = run_simulation(
         initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct
     )
+    st.session_state.sim_data = data
+    st.session_state.balances = balances
+    st.session_state.liq_hits = liq_hits
+    st.session_state.liq_steps = liq_steps
+    st.session_state.drawdowns = drawdowns
+
+if "sim_data" in st.session_state:
+    data = st.session_state.sim_data
+    balances = st.session_state.balances
+    liq_hits = st.session_state.liq_hits
+    liq_steps = st.session_state.liq_steps
+    drawdowns = st.session_state.drawdowns
+
+    st.subheader("📊 Результаты симуляции")
 
     # === Метрики
     st.markdown("### 📈 Общая статистика")
@@ -103,4 +117,67 @@ if start:
     if liq_steps:
         plot_liquidation_distribution(liq_steps, num_trades)
 
-    st.success("📊 Симуляция завершена!")
+    # === Вывод симуляции для разбора
+    st.markdown("### 📋 Детальный разбор симуляции")
+    st.info("""
+    🔍 *Здесь вы можете проанализировать любую симуляцию по шагам:*  
+    каждый параметр: **PnL**, 📉 *просадка*, 📊 *динамика капитала* — перед вами!
+
+    **Выберите** интересующую симуляцию из выпадающего списка ниже ⬇️
+    """)
+
+    # Индексы лучшей и худшей
+    best_idx = np.argmax(balances)
+    worst_idx = np.argmin(balances)
+
+    # Список для выбора
+    options = {
+        f"🔥 Лучшая симуляция (#{best_idx+1}) — {balances[best_idx]:,.2f}": best_idx,
+        f"🧊 Худшая симуляция (#{worst_idx+1}) — {balances[worst_idx]:,.2f}": worst_idx,
+    }
+    # Все симуляции по номерам
+    for i in range(len(balances)):
+        options[f"📈 Симуляция #{i+1} — {balances[i]:,.2f}"] = i
+
+    # Выбор симуляции
+    selected_label = st.selectbox("🔍 **Выберите симуляцию для просмотра**", list(options.keys()))
+    selected_index = options[selected_label]
+
+    # Построение таблицы
+    one_sim = data[selected_index]
+    peak = one_sim[0]
+    trades = []
+
+    for i in range(1, len(one_sim)):
+        pre_balance = one_sim[i - 1]
+        post_balance = one_sim[i]
+        pnl = post_balance - pre_balance
+        peak = max(peak, post_balance)
+        drawdown = (peak - post_balance) / peak if peak > 0 else 0
+
+        trades.append({
+            "№": i,
+            "🏁 Исход": "✅ Win" if pnl > 0 else "❌ Loss",
+            "💼 До сделки": f"{pre_balance:,.2f}",
+            "💸 PnL": f"{pnl:+.2f}",
+            "📊 После сделки": f"{post_balance:,.2f}",
+            "📉 Просадка": f"{drawdown:.0%}",
+            "🏔 Пик": f"{peak:,.2f}",
+        })
+
+    df_trades = pd.DataFrame(trades)
+
+    # Вывод
+    with st.expander(f"📋 _Показать таблицу шагов выбранной симуляции_"):
+        st.markdown("""
+    **📑 Что видно в таблице:**
+    - _**№**_ — номер сделки по порядку
+    - _**Исход**_ — победа ✅ или поражение ❌
+    - _**PnL**_ — прибыль или убыток (в $)
+    - _**До/После сделки**_ — капитал до и после шага
+    - _**Просадка**_ — насколько упал баланс от пикового
+    - _**Пик**_ — самый высокий баланс на этом шаге
+
+    👉 Используйте таблицу для анализа поведения стратегии на каждом этапе!
+    """)
+        st.dataframe(df_trades, use_container_width=True)
