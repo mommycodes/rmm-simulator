@@ -89,9 +89,6 @@ if start:
     data, balances, liq_hits, liq_steps, drawdowns, all_trades = run_simulation(
         initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct, stop_pct)
     st.subheader("📊 Результаты симуляции")
-    data, balances, liq_hits, liq_steps, drawdowns = run_simulation(
-        initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct
-    )
     st.session_state.sim_data = data
     st.session_state.balances = balances
     st.session_state.liq_hits = liq_hits
