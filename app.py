@@ -75,15 +75,16 @@ with st.expander("🔍 Показать калькулятор"):
     st.markdown(f"**⚠️ Риск на сделку:** ${risk_per_trade:.2f}")
     st.markdown(f"**🎯 Объём входа:** ${position_size:.2f}")
 
-
-
 st.markdown("---")
 st.markdown("<h3 style='text-align: center;'>🚀 <b>Начать симуляцию</b></h3>", unsafe_allow_html=True)
 start = st.button("▶️ Старт", use_container_width=True)
 
 if start:
     data, balances, liq_hits, liq_steps, drawdowns, all_trades = run_simulation(
-        initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct, stop_pct
+        initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct, stop_pct)
+    st.subheader("📊 Результаты симуляции")
+    data, balances, liq_hits, liq_steps, drawdowns = run_simulation(
+        initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct
     )
     st.session_state.sim_data = data
     st.session_state.balances = balances
