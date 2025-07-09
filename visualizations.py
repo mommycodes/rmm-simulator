@@ -198,7 +198,7 @@ def plot_distribution(balances, initial_balance):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def plot_liquidation_distribution(liq_steps, num_trades):
+def plot_liquidation_distribution(data, liq_steps, num_trades):
     st.markdown("#### 💀 Распределение ликвидаций по сделкам")
     st.caption("""
     **Ось X** — номер сделки, на которой произошла ликвидация.  

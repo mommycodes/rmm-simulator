@@ -176,7 +176,7 @@ if "sim_data" in st.session_state:
         st.markdown("---")
         with st.container():
             st.markdown("### 5. Ликвидации по шагам")
-            plot_liquidation_distribution(liq_steps, num_trades)
+            plot_liquidation_distribution(data, liq_steps, num_trades)
 
 
     # === Вывод симуляции для разбора
