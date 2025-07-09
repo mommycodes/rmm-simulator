@@ -82,7 +82,7 @@ start = st.button("▶️ Старт", use_container_width=True)
 if start:
     data, balances, liq_hits, liq_steps, drawdowns, all_trades = run_simulation(
         initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct, stop_pct)
-    st.subheader("📊 Результаты симуляции")
+
     st.session_state.sim_data = data
     st.session_state.balances = balances
     st.session_state.liq_hits = liq_hits
@@ -145,12 +145,39 @@ if "sim_data" in st.session_state:
     st.caption("Минимальный процент побед, при котором стратегия хотя бы не теряет деньги. Используется для оценки жизнеспособности.")
 
     # === Графики ===
-    plot_simulations(data, initial_balance)
-    plot_best_worst(data, balances)
-    plot_distribution(balances, initial_balance)
-    plot_probability_heatmap(data, initial_balance)
+    st.markdown("## 📊 Визуализация симуляций")
+    st.caption("""
+    Графики помогут **наглядно оценить поведение стратегии**:  
+    где риски максимальны, насколько результат стабилен и как часто происходят критические просадки.
+    """)
+    with st.container():
+        st.markdown("### 1. Траектории капитала")
+        plot_simulations(data, initial_balance)
+
+    st.markdown("---")
+
+    with st.container():
+        st.markdown("### 2. Лучшие и худшие случаи")
+        plot_best_worst(data, balances)
+
+    st.markdown("---")
+
+    with st.container():
+        st.markdown("### 3. Гистограмма итогов")
+        plot_distribution(balances, initial_balance)
+
+    st.markdown("---")
+
+    with st.container():
+        st.markdown("### 4. Карта вероятностей просадок")
+        plot_probability_heatmap(data, initial_balance)
+
     if liq_steps:
-        plot_liquidation_distribution(liq_steps, num_trades)
+        st.markdown("---")
+        with st.container():
+            st.markdown("### 5. Ликвидации по шагам")
+            plot_liquidation_distribution(liq_steps, num_trades)
+
 
     # === Вывод симуляции для разбора
     st.markdown("### 📋 Детальный разбор симуляции")
@@ -231,3 +258,24 @@ if "sim_data" in st.session_state:
     👉 Используйте таблицу для анализа поведения стратегии на каждом этапе!
     """)
         st.dataframe(df_trades, use_container_width=True)
+
+# === Контактная информация ===
+st.markdown("---")
+st.markdown("### 📬 Обратная связь")
+
+st.markdown("""
+<div style='display: flex; align-items: center; gap: 1rem;'>
+    <img src='https://avatars.githubusercontent.com/u/134078363?v=4' width='60' height='60' style='border-radius: 50%; border: 2px solid #ccc;' />
+    <div>
+        <p style='margin: 0; font-size: 16px;'>
+            Разработчик: <b>@mommycodes39</b>  
+        </p>
+        <p style='margin: 0; font-size: 14px;'>
+            📬 Telegram: <a href='https://t.me/mommycodes39' target='_blank'>связаться</a> |
+            🐙 GitHub: <a href='https://github.com/mommycodes/rmm-simulator/issues' target='_blank'>создать issue</a>
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.caption("💡 Обратная связь помогает сделать симулятор лучше. Спасибо за тестирование!")
