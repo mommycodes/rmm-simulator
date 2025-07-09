@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
+from simulator import run_simulation
 
 def plot_simulations(data, initial_balance):
     n = min(100, len(data))
@@ -185,7 +186,13 @@ def plot_distribution(balances, initial_balance):
         opacity=0.75
     )
 
-    fig.add_vline(x=initial_balance, line_dash="dash", line_color="red", annotation_text="Старт", annotation_position="top right")
+    fig.add_vline(
+        x=initial_balance,
+        line_dash="dash",
+        line_color="red",
+        annotation_text="Старт",
+        annotation_position="top right"
+    )
 
     fig.update_layout(
         title=f"Гистограмма итогов ({len(balances)} симуляций)",
@@ -279,3 +286,51 @@ def plot_probability_heatmap(data, initial_balance):
 
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_sensitivity_analysis(initial_balance, num_trades, risk_pct, winrates, rrs, simulations, liquidation_pct, stop_pct):
+    st.markdown("#### 🎛 Sensitivity Analysis: карта Winrate × RR")
+    st.caption("""
+    📌 **Цель анализа:**  
+    Выявить зоны устойчивости и прибыльности стратегии при разных сочетаниях Winrate и RR.
+
+    Каждая точка на карте — результат симуляции с конкретной парой параметров.  
+    Цвет отражает **средний итоговый баланс**.
+    """)
+
+    st.info("""
+    👉 **Как читать карту:**  
+    — Ярче / выше — больше прибыли.  
+    — Тёмнее / ниже — стратегия убыточна.  
+    — Граница между зонами показывает минимальный Winrate при заданном RR, чтобы стратегия работала в плюс.
+    """)
+
+    avg_balances = np.zeros((len(winrates), len(rrs)))
+
+    for i, wr in enumerate(winrates):
+        for j, rr in enumerate(rrs):
+            from simulator import run_simulation
+            _, balances, *_ = run_simulation(
+                initial_balance=initial_balance,
+                num_trades=num_trades,
+                risk_pct=risk_pct,
+                rr=rr,
+                winrate=wr,
+                simulations=simulations,
+                liquidation_pct=liquidation_pct,
+                stop_pct=stop_pct
+            )
+            avg_balances[i, j] = np.mean(balances)
+
+    X, Y = np.meshgrid(rrs, winrates)
+    Z = avg_balances
+
+    fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='Viridis')])
+    fig.update_layout(
+        title='📊 Средний итог при разных Winrate и RR',
+        scene=dict(
+            xaxis=dict(title='⚖️ RR'),
+            yaxis=dict(title='🎯 Winrate (%)'),
+            zaxis=dict(title='💰 Средний итог $')
+        ),
+        height=700
+    )
+    st.plotly_chart(fig, use_container_width=True)
