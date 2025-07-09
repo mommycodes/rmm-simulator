@@ -1,7 +1,1 @@
 ﻿# RMM Strategy Simulator
-
-Интерактивный симулятор риск-менеджмента для трейдинга.
-Проводи 100+ симуляций капитала, анализируй winrate, RR и вероятность ликвидации.
-
- Запуск: [https://rmm-simulator.streamlit.app](https://rmm-simulator.streamlit.app/)
-
