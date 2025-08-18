@@ -92,8 +92,8 @@ with st.expander("🔍 Показать"):
         # Таблица
         df = pd.DataFrame({
             "SL (%)": sl_values,
-            "Position Size ($)": position_sizes,
-            "Risk per Trade ($)": [risk_per_trade] * len(sl_values),
+            "Сумма входа ($)": position_sizes,
+            "Риск на сделку ($)": [risk_per_trade] * len(sl_values),
             "Объем входа STOP торги (риск 0.8%)": position_sizes_stop
         })
 
