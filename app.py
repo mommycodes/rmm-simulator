@@ -91,14 +91,14 @@ with st.expander("🔍 Показать"):
         max_loss_dollar_stop = round(dep_sl * (max_loss_pct_stop / 100.0), 2)
 
         # 5) Риск на сделку ($) для таблицы
-        risk_per_trade_dollar_for_table = round(max_loss_dollar_stop / 4.0, 2)
+        risk_per_trade_dollar_for_table = round(max_loss_dollar_stop, 2)
 
         # Выводим ключевые метрики
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Риск на сделку (%)", f"{risk_pct_input:.2f}%")
-        c2.metric("Риск на сделку ($)", f"{risk_dollar_direct:.2f}")
+        c2.metric("Риск на сделку ($)", f"{risk_dollar_direct:.2f}$")
         c3.metric("Макс. потеря STOP-торги (%)", f"{max_loss_pct_stop:.2f}%")
-        c4.metric("Макс. потеря STOP-торги ($)", f"{max_loss_dollar_stop:.2f}")
+        c4.metric("Макс. потеря STOP-торги ($)", f"{max_loss_dollar_stop:.2f}$")
 
         # Диапазон SL
         left, mid, right = st.columns(3)
