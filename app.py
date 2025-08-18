@@ -81,13 +81,15 @@ with st.expander("🔍 Показать"):
 
         df = pd.DataFrame({
             "SL (%)": sl_values,
-            "Position Size ($)": position_sizes
+            "Position Size ($)": position_sizes,
+            "Risk per Trade ($)": [risk_per_trade] * len(sl_values)
         })
 
         st.dataframe(
             df.style.format({
                 "SL (%)": "{:.1f}",
-                "Position Size ($)": "{:.2f}"
+                "Position Size ($)": "{:.2f}",
+                "Risk per Trade ($)": "{:.2f}"
             }),
             use_container_width=True
         )
