@@ -74,27 +74,40 @@ with st.expander("🔍 Показать"):
     deposit = st.number_input("Депозит ($)", value=100.0, key="calc_dep2")
     risk_per_trade = st.number_input("Фиксированный риск на сделку ($)", value=1.0, key="calc_risk2")
 
-    if risk_per_trade > 0:
+    if risk_per_trade > 0 and deposit > 0:
         # Диапазон SL: от 0.1% до 10% с шагом 0.1
         sl_values = np.arange(0.1, 10.1, 0.1)
+
+        # Основной расчет
         position_sizes = risk_per_trade / (sl_values / 100)
 
+        # Доп. расчет для стоп-торгов (0.8% на 4 сделки)
+        risk_stop = deposit * 0.002
+        position_sizes_stop = risk_stop / (sl_values / 100)
+
+        # Ограничение плеча <= 2х
+        position_sizes = np.minimum(position_sizes, 2 * deposit)
+        position_sizes_stop = np.minimum(position_sizes_stop, 2 * deposit)
+
+        # Таблица
         df = pd.DataFrame({
             "SL (%)": sl_values,
             "Position Size ($)": position_sizes,
-            "Risk per Trade ($)": [risk_per_trade] * len(sl_values)
+            "Risk per Trade ($)": [risk_per_trade] * len(sl_values),
+            "Объем входа STOP торги (риск 0.8%)": position_sizes_stop
         })
 
         st.dataframe(
             df.style.format({
                 "SL (%)": "{:.1f}",
                 "Position Size ($)": "{:.2f}",
-                "Risk per Trade ($)": "{:.2f}"
+                "Risk per Trade ($)": "{:.2f}",
+                "Объем входа STOP торги (риск 0.8%)": "{:.2f}"
             }),
             use_container_width=True
         )
     else:
-        st.warning("⚠️ Укажите положительное значение риска на сделку")
+        st.warning("⚠️ Укажите положительные значения депозита и риска на сделку")
 
     
 # === Калькулятор входа ===
