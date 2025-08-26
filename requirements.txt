@@ -7,3 +7,4 @@ streamlit-quill==0.0.3
 cryptography
 python-dotenv
 streamlit-js-eval
+PyGithub

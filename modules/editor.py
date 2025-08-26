@@ -1,6 +1,7 @@
 import streamlit as st
 import re
-from utils.storage import save_content, load_content
+from utils.storage import save_content_to_github as save_content
+from utils.storage import load_content_from_github as load_content
 
 try:
     from streamlit_quill import st_quill
