@@ -69,27 +69,32 @@ def render_editable_page(section_name: str):
 
     # --- Режим редактирования ---
     if st.session_state.edit_mode.get(section_name, False):
+
+        if "save_clicked" not in st.session_state:
+            st.session_state.save_clicked = False
+
         col1, col2 = st.columns([1, 1])
         with col1:
-            save_clicked = st.button("💾", type="primary", key=f"save_{section_name}")
+            if st.button("💾", key=f"save_{section_name}"):
+                st.session_state.save_clicked = True
         with col2:
-            cancel_clicked = st.button("❌", key=f"cancel_{section_name}")
+            if st.button("❌", key=f"cancel_{section_name}"):
+                st.session_state.edit_mode[section_name] = False
+                st.info("Редактирование отменено")
 
         # Редактор Quill
         current_html = st.session_state.blog_content.get(section_name, "")
-        html = st_quill(
-            value=current_html,
-            html=True,
-            placeholder="Введите текст…",
-            key=f"quill_{section_name}",
-        )
+        html = st_quill(value=current_html, html=True, placeholder="Введите текст…", key=f"quill_{section_name}")
 
-        if save_clicked:
+        # Сохраняем при клике
+        if st.session_state.save_clicked:
             sanitized = auto_embed_images(html or "")
             st.session_state.blog_content[section_name] = sanitized
             save_content(st.session_state.blog_content)
             st.session_state.edit_mode[section_name] = False
+            st.session_state.save_clicked = False
             st.success("Сохранено ✅")
+
 
         if cancel_clicked:
             st.session_state.edit_mode[section_name] = False
