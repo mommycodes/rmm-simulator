@@ -3,3 +3,7 @@ pandas>=2.2.0
 numpy>=1.26.0
 plotly>=5.20.0
 matplotlib>=3.9.0
+streamlit-quill==0.0.3
+cryptography
+python-dotenv
+streamlit-js-eval
