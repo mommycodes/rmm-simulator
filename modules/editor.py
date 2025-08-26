@@ -95,12 +95,12 @@ def render_editable_page(section_name: str):
             save_content(st.session_state.blog_content)
             st.session_state.edit_mode[section_name] = False
             st.session_state.save_clicked = False
-            st.success("Сохранено ✅")
+            msg_container.success("Сохранено ✅")
 
         if st.session_state.cancel_clicked:
             st.session_state.edit_mode[section_name] = False
             st.session_state.cancel_clicked = False
-            st.info("Редактирование отменено")
+            msg_container.info("Редактирование отменено")
 
     else:
         # --- Режим просмотра ---
