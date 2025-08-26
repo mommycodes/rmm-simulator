@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 def render_checklist_entry():
     st.markdown("## 🛡️ Вход в сделку")
     st.caption("⚡ Заполни чек-лист, подожди 10 минут и только потом входи в сделку - не спеши, ликвидация всегда приходит незаметно")
-    st.image("https://i.postimg.cc/rsPGT5JB/2025-08-09-113211.png", use_column_width=True)
+    st.image("https://i.postimg.cc/rsPGT5JB/2025-08-09-113211.png", use_container_width=True)
 
     # --- Инициализация состояния ---
     if "checklist" not in st.session_state:
