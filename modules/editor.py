@@ -73,14 +73,16 @@ def render_editable_page(section_name: str):
         if "save_clicked" not in st.session_state:
             st.session_state.save_clicked = False
 
+        if "cancel_clicked" not in st.session_state:
+            st.session_state.cancel_clicked = False
+
         col1, col2 = st.columns([1, 1])
         with col1:
             if st.button("💾", key=f"save_{section_name}"):
                 st.session_state.save_clicked = True
         with col2:
             if st.button("❌", key=f"cancel_{section_name}"):
-                st.session_state.edit_mode[section_name] = False
-                st.info("Редактирование отменено")
+                st.session_state.cancel_clicked = True
 
         # Редактор Quill
         current_html = st.session_state.blog_content.get(section_name, "")
@@ -95,9 +97,9 @@ def render_editable_page(section_name: str):
             st.session_state.save_clicked = False
             st.success("Сохранено ✅")
 
-
-        if cancel_clicked:
+        if st.session_state.cancel_clicked:
             st.session_state.edit_mode[section_name] = False
+            st.session_state.cancel_clicked = False
             st.info("Редактирование отменено")
 
     else:
