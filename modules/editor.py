@@ -21,21 +21,40 @@ def _init_content_state():
 
 
 def auto_embed_images(html: str) -> str:
-    """Авто-вклейка картинок по ссылке."""
+    """Авто-вклейка картинок по ссылке, не трогает уже вставленные <img>."""
     if not html:
         return html
+
+    # 1. Преобразуем ссылки <a href="...">, если внутри нет <img>
+    def replace_a(match):
+        href = match.group(1)
+        inner = match.group(2)
+        if '<img' in inner.lower():
+            return match.group(0)  # оставляем как есть
+        return f'<img src="{href}" style="max-width:100%;height:auto;" />'
+
     html = re.sub(
-        r'<a[^>]+href="(https?://[^\s"]+\.(?:png|jpe?g|gif))"[^>]*>.*?</a>',
-        r'<img src="\1" style="max-width:100%;height:auto;" />',
+        r'<a[^>]+href="(https?://[^\s"]+\.(?:png|jpe?g|gif))"[^>]*>(.*?)</a>',
+        replace_a,
         html,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE | re.DOTALL
     )
+
+    # 2. Преобразуем «чистые» URL, которые не внутри <img> или <a>
+    def replace_url(match):
+        url = match.group(0)
+        # проверяем, что перед URL нет src= или внутри <img>
+        if re.search(r'src=[\'"]{}[\'"]'.format(re.escape(url)), html):
+            return url
+        return f'<img src="{url}" style="max-width:100%;height:auto;" />'
+
     html = re.sub(
-        r'(?P<url>https?://[^\s"<]+?\.(?:png|jpe?g|gif))',
-        r'<img src="\g<url>" style="max-width:100%;height:auto;" />',
+        r'https?://[^\s"<]+\.(?:png|jpe?g|gif)',
+        replace_url,
         html,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE
     )
+
     return html
 
 
