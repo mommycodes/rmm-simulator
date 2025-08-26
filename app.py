@@ -1,362 +1,154 @@
+# app.py
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-from simulator import run_simulation
-from visualizations import plot_simulations, plot_best_worst, plot_distribution, plot_liquidation_distribution, plot_probability_heatmap
+import os
 
-st.set_page_config(layout="wide")
-st.title("🎯 Торговый симулятор стратегии")
+from modules.calculators import render_rmm_calculators
+from modules.montecarlo import render_monte_carlo
+from modules.editor import render_editable_page
+from dotenv import load_dotenv
+from checklist import render_checklist_entry
 
-# === Ввод параметров ===
-with st.sidebar:
-    st.header("⚙️ Входные параметры")
-    initial_balance = st.number_input("💰 Начальный баланс ($)", value=100.0, min_value=1.0, help="Сумма, с которой начинается каждая симуляция")
-    num_trades = st.number_input("🔁 Кол-во сделок", value=50, min_value=1, max_value=1000, help="Сколько подряд сделок будет совершено в одной симуляции")
-    risk_mode = st.radio("📌 Выберите метод расчёта риска:", ["Риск на сделку (%)", "Риск на день (%)"], index=0)
-    if risk_mode == "Риск на сделку (%)":
-        risk_pct = st.number_input("🔥 Риск на сделку (%)", value=2.0, min_value=0.1, max_value=100.0,
-                                help="Процент капитала, которым вы рискуете в каждой сделке")
-        risk_dollars = initial_balance * risk_pct / 100
-        st.caption(f"⚠️ Риск на сделку: **{risk_pct:.2f}%** ≈ ${risk_dollars:.2f}")
-    else:
-        day_risk_pct = st.number_input("📉 Риск на день (%)", value=2.0, min_value=0.1, max_value=100.0,
-                                    help="Сколько процентов капитала вы готовы потерять за день")
-        risk_pct = day_risk_pct / num_trades
-        risk_dollars = initial_balance * risk_pct / 100
-        st.caption(f"⚠️ Риск на сделку: **{risk_pct:.2f}%** ≈ ${risk_dollars:.2f} из {day_risk_pct:.1f}% на день")
-    stop_pct = st.number_input("🛑 Стоп-лосс (%)", value=1.0, min_value=0.1, max_value=100.0, help="Процент от пикового баланса, при котором сделка закрывается в убыток")
-    rr = st.number_input("⚖️ Reward/Risk (RR)", value=2.0, min_value=0.1, help="Соотношение прибыли к убытку. RR = 2 означает, что при стопе 1% вы берёте профит 2%.")
-    if stop_pct > 0:
-        tp_pct = stop_pct * rr
-        st.caption(f"📌 Текущий RR: **{rr:.1f}:1** — стоп: {stop_pct:.1f}%, профит: {tp_pct:.1f}%")
-    else:
-        st.caption("📌 Текущий RR: **{rr:.1f}:1** — ожидается ненулевой стоп для вычисления профита.")
-    winrate = st.slider("🎯 Winrate (%)", min_value=0, max_value=100, value=50, help="Как часто стратегия приносит прибыль. Например, 60% означает 6 из 10 сделок — прибыльные")
-    simulations = st.number_input("📊 Кол-во симуляций", value=100, min_value=1, max_value=10000, help="Сколько разных траекторий капитала будет смоделировано")
-    liquidation_pct = st.number_input("💀 Порог ликвидации (%)", value=1.0, min_value=0.0, max_value=100.0, help="Если баланс падает ниже этого процента от начального — считается, что произошла ликвидация")
+load_dotenv()
 
-# === Алгоритм Манименеджмента ===
-st.markdown("---")
-st.markdown("### 📘 Алгоритм манименеджмента")
-st.info("✨ Рекомендованный базовый свод правил")
-with st.expander("🔍 Показать"):
-    st.markdown("""
-1. ❌ **Стоп-торги** после **3 убыточных сделок**  
-2. ⚖️ **RR минимум 3:1** — каждая прибыль минимум в 3 раза больше убытка  
-3. 📋 **Торговый план на день** (по чек-листу)  
-4. 📓 **Ведение дневника сделок** и статистики  
-5. 💵 **Один и тот же риск в $** на сделку (**2%**)  
-6. 📉 **Не превышать объём** — рисковать только малой частью депозита  
-7. 🧯 **Перерыв 2–3 недели** при просадке > **20% за месяц**  
-8. ✅ **Закрытие дня** при прибыли **2–5%**  
+# -----------------------------
+# Общая конфигурация страницы
+# -----------------------------
+st.set_page_config(layout="wide", page_title="MOMMY CODES")
 
-🎯 **Цель**: не потерять депозит, остаться на рынке
 
----
-### 📊 Минимально жизнеспособная стратегия:
-- **RR ≥ 3:1**
-- **Winrate ≥ 35%**
+# === Проверка ключа при входе ===
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "key_input" not in st.session_state:
+    st.session_state.key_input = ""
+if "error_msg" not in st.session_state:
+    st.session_state.error_msg = ""
 
-🧠 Даже при **65% убыточных сделках** можно выжить, если соблюдать соотношение риска и прибыли!
-""")
-    
-# ===============================
-# 🔹 Калькулятор объема по SL (%)
-# ===============================
-st.markdown("---")
-st.markdown("### 📐 Калькулятор объема по SL (%)")
-st.info("⚠️ Этот блок не влияет на симуляцию — используется только для расчёта вручную")
+APP_KEY = os.getenv("APP_KEY") or st.secrets.get("APP_KEY")
 
-with st.expander("🔍 Показать"):
-    st.write("Рассчет объема позиции при фиксированном риске и разных значениях SL (%)")
+if not st.session_state.authenticated:
+    st.title("🔑 Авторизация")
+    st.markdown(f"<h2 style='text-align:center;'>{'*'*len(st.session_state.key_input)}</h2>", unsafe_allow_html=True)
 
-    # 1) Ввод: депозит ($) и фиксированный риск на сделку (%)
-    dep_sl = st.number_input("💼 Депозит ($)", value=100.0, min_value=0.0, key="slcalc_dep")
-    risk_pct_input = st.number_input(
-        "🔥 Фиксированный риск на сделку (%)",
-        value=2.0, min_value=0.01, max_value=100.0, step=0.01, key="slcalc_risk_pct"
+    rows = [
+        [1,2,3],
+        [4,5,6],
+        [7,8,9],
+        ["⌫",0,"✅"]
+    ]
+
+    for row in rows:
+        cols = st.columns(3)
+        for i, val in enumerate(row):
+            if cols[i].button(str(val)):
+                if val == "⌫":
+                    st.session_state.key_input = st.session_state.key_input[:-1]
+                elif val == "✅":
+                    if st.session_state.key_input == APP_KEY:
+                        st.session_state.authenticated = True
+                        st.session_state.error_msg = ""
+                    else:
+                        st.session_state.error_msg = "Неверный ключ ❌"
+                        st.session_state.key_input = ""
+                else:
+                    st.session_state.key_input += str(val)
+
+    if st.session_state.error_msg:
+        st.error(st.session_state.error_msg)
+
+    st.stop()
+
+# -----------------------------
+# Константы навигации
+# -----------------------------
+PAGES = [
+    ("🚀 Главная", "home"),
+    ("🛡️ ВХОД в сделку", "checklist"),
+    ("📊 Технический анализ", "ta"),
+    ("🕯 Свечной анализ", "candles"),
+    ("📈 Индикаторы", "indicators"),
+    ("🌊 Волновой анализ", "waves"),
+    ("🎯 Стратегии", "strategies"),
+    ("🧮 Калькуляторы", "calculators"),
+    ("🎲 Симулятор стратегий", "simulator"),
+]
+
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+# -----------------------------
+# Сайдбар: Кнопки разделов
+# -----------------------------
+st.sidebar.markdown("### 📚 Разделы")
+
+for label, key in PAGES:
+    if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
+        st.session_state.page = key
+
+current = st.session_state.page
+
+# -----------------------------
+# Рендер страниц
+# -----------------------------
+# app.py
+def render_home():
+    st.markdown("## 📘 Алгоритм манименеджмента")
+    st.info("✨ Рекомендованный базовый свод правил")
+
+    rules = [
+        ("❌", "**Стоп-торги** после 3 убыточных сделок — останавливаем торговлю на день, чтобы не сгореть"),
+        ("⚖️", "**RR минимум 3:1** — каждая прибыль минимум в 3 раза больше убытка"),
+        ("📋", "**Торговый план на день** — оформляем по чек-листу"),
+        ("📓", "**Ведение дневника сделок** и статистики"),
+        ("💵", "**Один и тот же риск в $** на сделку (2%)"),
+        ("📉", "**Не превышать объём** — рисковать только малой частью депозита"),
+        ("🧯", "**Перерыв 2–3 недели** при просадке > 20% за месяц"),
+        ("✅", "**Закрытие дня** при прибыли 2–5%")
+    ]
+
+    for emoji, text in rules:
+        st.markdown(
+            f"{emoji} {text}</div>",
+            unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+    st.markdown("### 🎯 Минимально жизнеспособная стратегия")
+    st.markdown(
+        "<ul>"
+        "<li>📈 <b>RR ≥ 3:1</b></li>"
+        "<li>🎯 <b>Winrate ≥ 35%</b></li>"
+        "</ul>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "🧠 Даже при <b>65% убыточных сделках</b> можно выжить, если соблюдать соотношение риска и прибыли!",
+        unsafe_allow_html=True
     )
 
-    if dep_sl <= 0:
-        st.warning("Укажи положительный депозит.")
-    else:
-        # 2) Риск на сделку в $ (прямой перевод % в доллары)
-        risk_dollar_direct = round(dep_sl * risk_pct_input / 100.0, 2)
+if current == "home":
+    render_home()
+elif current == "ta":
+    render_editable_page("Технический анализ")
+elif current == "candles":
+    render_editable_page("Свечной анализ")
+elif current == "indicators":
+    render_editable_page("Индикаторы")
+elif current == "waves":
+    render_editable_page("Волновой анализ")
+elif current == "strategies":
+    render_editable_page("Стратегии")
+elif current == "calculators":
+    render_rmm_calculators()
+elif current == "simulator":
+    render_monte_carlo()
+elif current == "checklist":
+    render_checklist_entry()
 
-        # 3) Макс. допустимая потеря для стоп-торгов в %
-        max_loss_pct_stop = round(risk_pct_input / 4.0, 2)
 
-        # 4) Потеря в $ при стоп-торгах
-        max_loss_dollar_stop = round(dep_sl * (max_loss_pct_stop / 100.0), 2)
-
-        # 5) Риск на сделку ($) для таблицы
-        risk_per_trade_dollar_for_table = round(max_loss_dollar_stop, 2)
-
-        # Выводим ключевые метрики
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Риск на сделку (%)", f"{risk_pct_input:.2f}%")
-        c2.metric("Риск на сделку ($)", f"{risk_dollar_direct:.2f}$")
-        c3.metric("Макс. потеря STOP-торги (%)", f"{max_loss_pct_stop:.2f}%")
-        c4.metric("Макс. потеря STOP-торги ($)", f"{max_loss_dollar_stop:.2f}$")
-
-        # Диапазон SL
-        left, mid, right = st.columns(3)
-        sl_min = left.number_input("Минимальный SL (%)", value=0.1, min_value=0.1, max_value=50.0, step=0.1, key="sl_min")
-        sl_max = mid.number_input("Максимальный SL (%)", value=10.0, min_value=sl_min, max_value=50.0, step=0.1, key="sl_max")
-        sl_step = right.number_input("Шаг SL (%)", value=0.1, min_value=0.1, max_value=10.0, step=0.1, key="sl_step")
-
-        sl_values = np.round(np.arange(sl_min, sl_max + 1e-9, sl_step), 2)
-
-        # Сумма входа ($)
-        entry_sizes_raw = risk_per_trade_dollar_for_table * 100.0 / sl_values
-        entry_cap = 2.0 * dep_sl
-        entry_sizes_capped = np.minimum(entry_sizes_raw, entry_cap)
-
-        # Таблица
-        df_sl = pd.DataFrame({
-            "SL (%)": np.round(sl_values, 2),
-            "Риск на сделку ($)": np.repeat(risk_per_trade_dollar_for_table, len(sl_values)),
-            "Сумма входа ($)": np.round(entry_sizes_capped, 2),
-        })
-
-        st.dataframe(df_sl, use_container_width=True)
-
-    
-# === Калькулятор входа ===
-st.markdown("---")
-st.markdown("### 📐 Калькулятор входа")
-st.info("⚠️ Этот блок не влияет на симуляцию — используется только для расчёта вручную")
-
-with st.expander("🔍 Показать"):
-    calc_deposit = st.number_input("💼 Депозит ($)", value=100.0, key="calc_dep")
-    calc_risk_pct = st.number_input("📉 Риск на день (%)", value=2.0, key="calc_risk")
-    calc_num_trades = st.number_input("🔢 Сделок в день", value=3, key="calc_trades")
-    calc_stop_pct = st.number_input("🛑 Стоп (%)", value=1.0, key="calc_stop")
-
-    risk_per_trade = (calc_deposit * calc_risk_pct / 100) / calc_num_trades if calc_num_trades else 0
-    position_size = risk_per_trade / (calc_stop_pct / 100) if calc_stop_pct else 0
-
-    st.markdown(f"**⚠️ Риск на сделку:** ${risk_per_trade:.2f}")
-    st.markdown(f"**🎯 Объём входа:** ${position_size:.2f}")
-    
-st.markdown("---")
-st.markdown("<h3 style='text-align: center;'>🚀 <b>Начать симуляцию</b></h3>", unsafe_allow_html=True)
-start = st.button("▶️ Старт", use_container_width=True)
-
-if start:
-    data, balances, liq_hits, liq_steps, drawdowns, all_trades = run_simulation(
-        initial_balance, num_trades, risk_pct, rr, winrate, simulations, liquidation_pct, stop_pct)
-
-    st.session_state.sim_data = data
-    st.session_state.balances = balances
-    st.session_state.liq_hits = liq_hits
-    st.session_state.liq_steps = liq_steps
-    st.session_state.drawdowns = drawdowns
-    st.session_state.all_trades = all_trades
-
-if "sim_data" in st.session_state:
-    data = st.session_state.sim_data
-    balances = st.session_state.balances
-    liq_hits = st.session_state.liq_hits
-    liq_steps = st.session_state.liq_steps
-    drawdowns = st.session_state.drawdowns
-    all_trades = st.session_state.all_trades
-
-    st.subheader("📊 Результаты симуляции")
-
-    # === Метрики
-    st.markdown("### 📈 Общая статистика")
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        col1.metric("📊 Медианное значение", f"{np.median(balances):,.2f}", help="Медианное значение итогового баланса: у половины симуляций результат выше, у половины — ниже. Нужна, чтобы увидеть, какой результат даёт стратегия в типичном сценарии без влияния экстремумов.")
-
-        col1.metric("📈 Средний итог", f"{np.mean(balances):,.2f}", help="Арифметическое среднее всех финальных балансов. Используется для оценки общей эффективности стратегии, но чувствительно к выбросам.")
-
-        col2.metric("🔻 Минимальный результат", f"{np.min(balances):,.2f}", help="Наихудший результат среди всех симуляций. Помогает оценить потенциальные риски и просадки при неблагоприятных условиях.")
-
-        col2.metric("🟢 Максимальный результат", f"{np.max(balances):,.2f}", help="Наилучший результат. Позволяет увидеть потенциал стратегии в идеальных условиях, но не гарантирует повторяемости.")
-
-        col3.metric("🎲 Волатильность (Std Dev)", f"{np.std(balances):,.2f}", help="Стандартное отклонение от среднего. Чем выше — тем менее предсказуемая стратегия. Это важный показатель стабильности.")
-
-        col3.metric("🔁 Кол-во симуляций", str(len(balances)), help="Общее число независимых симуляций стратегии. Чем их больше — тем надёжнее статистика.")
-
-    st.metric("💀 Ликвидации", f"{liq_hits} из {len(balances)} ({liq_hits / len(balances) * 100:.1f}%)", help="Симуляции, в которых капитал опустился ниже установленного порога ликвидации. Важно для оценки риска полного обнуления депозита.")
-
-     # === Дополнительно
-    st.markdown("### 🧪 Доп. показатели")
-
-    st.write(f"📉 Средняя просадка: **{np.mean(drawdowns) * 100:.2f}%**")
-    st.caption("Показывает, сколько в среднем терялось от пикового баланса до локального минимума. Помогает оценить уровень дискомфорта, который придётся переживать.")
-
-    st.write(f"💵 Итог > стартового капитала: **{np.sum(balances > initial_balance)} ({np.mean(balances > initial_balance) * 100:.1f}%)**")
-    st.caption("Сколько симуляций завершились в плюсе. Полезно для оценки вероятности хотя бы умеренного успеха.")
-
-    st.write(f"💰 Итог > 2× капитала: **{np.sum(balances > initial_balance * 2)} ({np.mean(balances > initial_balance * 2) * 100:.1f}%)**")
-    st.caption("Симуляции с удвоением капитала и более. Показывает, насколько велика вероятность существенного роста депозита.")
-
-    st.write(f"🚀 Итог > 10× капитала: **{np.sum(balances > initial_balance * 10)} ({np.mean(balances > initial_balance * 10) * 100:.1f}%)**")
-    st.caption("Редкие, но вдохновляющие случаи. Помогает увидеть долгосрочный потенциал стратегии при идеальных условиях.")
-
-    # === Статус стратегии
-    if np.median(balances) > initial_balance:
-        st.success("✅ Стратегия прибыльная")
-    else:
-        st.error("❌ Стратегия убыточная")
-
-    # === Порог безубыточности
-    min_wr = 100 / (1 + rr)
-    st.info(f"🎯 Минимальный Winrate для безубытка: **{min_wr:.2f}%**")
-    st.caption("Минимальный процент побед, при котором стратегия хотя бы не теряет деньги. Используется для оценки жизнеспособности.")
-
-    # === Графики ===
-    st.markdown("## 📊 Визуализация симуляций")
-    st.caption("""
-    Графики помогут **наглядно оценить поведение стратегии**:  
-    где риски максимальны, насколько результат стабилен и как часто происходят критические просадки.
-    """)
-    with st.container():
-        st.markdown("### 1. Траектории капитала")
-        plot_simulations(data, initial_balance)
-
-    st.markdown("---")
-
-    with st.container():
-        st.markdown("### 2. Лучшие и худшие случаи")
-        plot_best_worst(data, balances)
-
-    st.markdown("---")
-
-    with st.container():
-        st.markdown("### 3. Гистограмма итогов")
-        plot_distribution(balances, initial_balance)
-
-    st.markdown("---")
-
-    with st.container():
-        st.markdown("### 4. Карта вероятностей просадок")
-        plot_probability_heatmap(data, initial_balance)
-
-    if liq_steps:
-        st.markdown("---")
-        with st.container():
-            st.markdown("### 5. Ликвидации по шагам")
-            plot_liquidation_distribution(data, liq_steps, num_trades)
-
-    st.markdown("---")
-    st.markdown("### 🎛 Sensitivity Analysis (3D-карта)")
-
-    with st.expander("📊 Показать карту по winrate × RR"):
-        st.caption("""
-        Здесь можно увидеть, **при каких условиях стратегия становится прибыльной**.  
-        Выберите диапазон `Winrate` и `RR`, и симулятор построит 3D-карту средней доходности.
-        """)
-        winrate_range = st.slider("🎯 Диапазон Winrate", 10, 100, (30, 70), step=5)
-        rr_range = st.slider("⚖️ Диапазон RR", 0.5, 5.0, (1.0, 3.0), step=0.5)
-
-        winrates = list(range(winrate_range[0], winrate_range[1] + 1, 5))
-        rrs = list(np.round(np.arange(rr_range[0], rr_range[1] + 0.1, 0.5), 2))
-
-        sim_count = st.number_input("🔁 Симуляций на каждую точку", min_value=10, max_value=1000, value=100)
-
-        if st.button("🚀 Построить карту"):
-            from visualizations import plot_sensitivity_analysis
-            plot_sensitivity_analysis(
-                initial_balance=initial_balance,
-                num_trades=num_trades,
-                risk_pct=risk_pct,
-                winrates=winrates,
-                rrs=rrs,
-                simulations=sim_count,
-                liquidation_pct=liquidation_pct,
-                stop_pct=stop_pct
-            )
-
-    # === Вывод симуляции для разбора
-    st.markdown("---")
-    st.markdown("### 📋 Детальный разбор симуляции")
-    st.info("""
-    🔍 *Здесь вы можете проанализировать любую симуляцию по шагам:*  
-    каждый параметр: **PnL**, 📉 *просадка*, 📊 *динамика капитала* — перед вами!
-
-    **Выберите** интересующую симуляцию из выпадающего списка ниже ⬇️
-    """)
-
-    # Индексы лучшей и худшей
-    best_idx = np.argmax(balances)
-    worst_idx = np.argmin(balances)
-
-    # Список для выбора
-    options = {
-        f"🔥 Лучшая симуляция — {balances[best_idx]:,.2f}": best_idx,
-        f"🧊 Худшая симуляция — {balances[worst_idx]:,.2f}": worst_idx,
-    }
-    # Все симуляции по номерам
-    for i in range(len(balances)):
-        options[f"📈 Симуляция #{i+1} — {balances[i]:,.2f}"] = i
-
-    # Выбор симуляции
-    selected_label = st.selectbox("🔍 **Выберите симуляцию для просмотра**", list(options.keys()))
-    selected_index = options[selected_label]
-
-    # Построение таблицы
-    one_sim = data[selected_index]
-    peak = one_sim[0]
-    trades = []
-    trades_raw = st.session_state.all_trades[selected_index]
-
-    for i in range(1, len(one_sim)):
-        pre_balance = one_sim[i - 1]
-        post_balance = one_sim[i]
-        pnl = post_balance - pre_balance
-        peak = max(peak, post_balance)
-        drawdown = (peak - post_balance) / peak if peak > 0 else 0
-
-        trade_data = trades_raw[i - 1] 
-        position_size = trade_data["position_size"]
-        stop_loss_dollars = trade_data["sl"]
-        take_profit_dollars = trade_data["tp"]
-
-        trades.append({
-            "№": i,
-            "🏁 Исход": "✅ Win" if pnl > 0 else "❌ Loss",
-            "💼 До сделки": f"{pre_balance:,.2f}",
-            "💸 PnL": f"{pnl:+.2f}",
-            "📊 После сделки": f"{post_balance:,.2f}",
-            "📉 Просадка": f"{drawdown:.0%}",
-            "🏔 Пик": f"{peak:,.2f}",
-            "📦 Объём входа ($)": f"{position_size:,.2f}",
-            "🛑 SL ($)": f"{stop_loss_dollars:,.2f}",
-            "🎯 TP ($)": f"{take_profit_dollars:,.2f}",
-        })
-
-    df_trades = pd.DataFrame(trades)
-
-    # Вывод
-    with st.expander(f"📋 _Показать таблицу шагов выбранной симуляции_"):
-        st.markdown("""
-    **📑 Что видно в таблице:**
-    - _**🔢 №**_ — номер сделки по порядку
-    - _**🏁 Исход**_ — победа ✅ или поражение ❌
-    - _**💸 PnL ($)**_ — прибыль или убыток в долларах по каждой сделке
-    - _**💼 До сделки / 📊 После сделки**_ — баланс до и после каждой сделки
-    - _**📉 Просадка**_ — снижение от максимального баланса до текущего
-    - _**🏔 Пик**_ — самый высокий баланс, достигнутый к этому моменту
-    - _**📦 Объём входа ($)**_ — сумма, на которую была открыта сделка  
-    👉 `вход = риск на сделку / стоп % × 100`
-    - _**🛑 SL ($)**_ — потенциальный убыток при срабатывании стопа  
-    👉 `SL = вход × стоп %`
-    - _**🎯 TP ($)**_ — прибыль при достижении тейк-профита  
-    👉 `TP = SL × RR`
-
-    👉 Используйте таблицу для анализа поведения стратегии на каждом этапе!
-    """)
-        st.dataframe(df_trades, use_container_width=True)
-
-# === Контактная информация ===
+# === Контакты
 st.markdown("---")
 st.markdown("### 📬 Обратная связь")
-
 st.markdown("""
 <div style='display: flex; align-items: center; gap: 1rem;'>
     <img src='https://avatars.githubusercontent.com/u/134078363?v=4' width='60' height='60' style='border-radius: 50%; border: 2px solid #ccc;' />
