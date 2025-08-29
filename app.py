@@ -79,13 +79,46 @@ if "page" not in st.session_state:
 # -----------------------------
 # Сайдбар: Кнопки разделов
 # -----------------------------
+# -----------------------------
+# Сайдбар: Кнопки разделов
+# -----------------------------
 st.sidebar.markdown("### 📚 Разделы")
 
 for label, key in PAGES:
-    if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
-        st.session_state.page = key
+    if key == "ta":
+        # Подразделы Тех. анализа
+        with st.sidebar.expander("📊 Технический анализ", expanded=(st.session_state.page.startswith("ta"))):
+            if st.button("📘 Общие понятия", key="nav_ta_general", use_container_width=True):
+                st.session_state.page = "ta_general"
+            if st.button("🕯 Свечной анализ", key="nav_ta_candles", use_container_width=True):
+                st.session_state.page = "ta_candles"
+            if st.button("📈 Тренды и линии тренда", key="nav_ta_trends", use_container_width=True):
+                st.session_state.page = "ta_trends"
+            if st.button("💥 Пробои", key="nav_ta_breakouts", use_container_width=True):
+                st.session_state.page = "ta_breakouts"
+            if st.button("📏 Складной метр", key="nav_ta_ruler", use_container_width=True):
+                st.session_state.page = "ta_ruler"
+            if st.button("🔷 Фигуры тех. анализа", key="nav_ta_patterns", use_container_width=True):
+                st.session_state.page = "ta_patterns"
+    elif key == "waves":
+        # твой блок волн оставляем как есть
+        with st.sidebar.expander("🌊 Волновой анализ", expanded=(st.session_state.page.startswith("waves"))):
+            if st.button("📈 Импульс", key="nav_waves_impulse", use_container_width=True):
+                st.session_state.page = "waves_impulse"
+            if st.button("🔄 Коррекция", key="nav_waves_correction", use_container_width=True):
+                st.session_state.page = "waves_correction"
+            if st.button("📜 Общие правила", key="nav_waves_rules", use_container_width=True):
+                st.session_state.page = "waves_rules"
+            if st.button("🔢 Фибоначчи", key="nav_waves_fibo", use_container_width=True):
+                st.session_state.page = "waves_fibo"
+            if st.button("📐 Клины", key="nav_waves_wedges", use_container_width=True):
+                st.session_state.page = "waves_wedges"
+            if st.button("🎯 Сетапы", key="nav_waves_setups", use_container_width=True):
+                st.session_state.page = "waves_setups"
+    else:
+        if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
+            st.session_state.page = key
 
-current = st.session_state.page
 
 # -----------------------------
 # Рендер страниц
@@ -126,22 +159,56 @@ def render_home():
         unsafe_allow_html=True
     )
 
+# === Определяем текущую страницу ===
+current = st.session_state.page
+
 if current == "home":
     render_home()
-elif current == "ta":
-    render_editable_page("Технический анализ")
-elif current == "candles":
-    render_editable_page("Свечной анализ")
+# --- Тех. анализ ---
+elif current == "ta_general":
+    render_editable_page("Технический анализ — Общие понятия")
+elif current == "ta_candles":
+    render_editable_page("Технический анализ — Свечной анализ")
+elif current == "ta_trends":
+    render_editable_page("Технический анализ — Тренды и линии тренда")
+elif current == "ta_breakouts":
+    render_editable_page("Технический анализ — Пробои")
+elif current == "ta_ruler":
+    render_editable_page("Технический анализ — Складной метр")
+elif current == "ta_patterns":
+    render_editable_page("Технический анализ — Фигуры тех. анализа")
+
+# --- Индикаторы ---
 elif current == "indicators":
     render_editable_page("Индикаторы")
-elif current == "waves":
-    render_editable_page("Волновой анализ")
+
+# --- Волновой анализ ---
+elif current == "waves_impulse":
+    render_editable_page("Волновой анализ — Импульс")
+elif current == "waves_correction":
+    render_editable_page("Волновой анализ — Коррекция")
+elif current == "waves_rules":
+    render_editable_page("Волновой анализ — Общие правила")
+elif current == "waves_fibo":
+    render_editable_page("Волновой анализ — Фибоначчи")
+elif current == "waves_wedges":
+    render_editable_page("Волновой анализ — Клины")
+elif current == "waves_setups":
+    render_editable_page("Волновой анализ — Сетапы")
+
+# --- Стратегии ---
 elif current == "strategies":
     render_editable_page("Стратегии")
+
+# --- Калькуляторы ---
 elif current == "calculators":
     render_rmm_calculators()
+
+# --- Симулятор ---
 elif current == "simulator":
     render_monte_carlo()
+
+# --- Чеклист ---
 elif current == "checklist":
     render_checklist_entry()
 
