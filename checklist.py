@@ -59,9 +59,9 @@ def render_checklist_entry():
         st.markdown(f"<h4 style='font-weight:bold; color:#2e7d32; margin-bottom:5px;'>{section_name}</h4>", unsafe_allow_html=True)
         for key, (weight, hint, warning) in items.items():
             checked = st.checkbox(
-                f"{key}", 
+                f"{key} ⚠️", 
                 value=st.session_state.checklist[key], 
-                help=hint, 
+                help=f"{hint}\n{warning}" if warning else hint, 
                 key=key
             )
             st.session_state.checklist[key] = checked
