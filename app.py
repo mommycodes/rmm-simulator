@@ -68,6 +68,7 @@ PAGES = [
     ("📊 Технический анализ", "ta"),
     ("📈 Индикаторы", "indicators"),
     ("🎯 Стратегии", "strategies"),
+    ("🖼️ Библиотека скринов", "screens"),
     ("🧮 Калькуляторы", "calculators"),
     ("🎲 Симулятор стратегий", "simulator"),
 ]
@@ -75,9 +76,7 @@ PAGES = [
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-# -----------------------------
-# Сайдбар: Кнопки разделов
-# -----------------------------
+
 # -----------------------------
 # Сайдбар: Кнопки разделов
 # -----------------------------
@@ -100,7 +99,7 @@ for label, key in PAGES:
             if st.button("🔷 Фигуры тех. анализа", key="nav_ta_patterns", use_container_width=True):
                 st.session_state.page = "ta_patterns"
     elif key == "waves":
-        # твой блок волн оставляем как есть
+        # Подразделы Волн. анализа
         with st.sidebar.expander("🌊 Волновой анализ", expanded=(st.session_state.page.startswith("waves"))):
             if st.button("📈 Импульс", key="nav_waves_impulse", use_container_width=True):
                 st.session_state.page = "waves_impulse"
@@ -114,6 +113,23 @@ for label, key in PAGES:
                 st.session_state.page = "waves_wedges"
             if st.button("🎯 Сетапы", key="nav_waves_setups", use_container_width=True):
                 st.session_state.page = "waves_setups"
+    elif key == "screens":
+        # Подразделы Библиотеки скринов
+        with st.sidebar.expander("🖼️ Библиотека скринов", expanded=(st.session_state.page.startswith("screens"))):
+            screen_subpages = [
+                ("📊 Пятиволновки", "screens_5waves"),
+                ("1️⃣–2️⃣ Волны", "screens_1_2"),
+                ("3️⃣ Волна", "screens_3"),
+                ("📐 Клины", "screens_wedges"),
+                ("🔄 Коррекции", "screens_corrections"),
+                ("🔷 Фигуры тех. анализа", "screens_patterns"),
+                ("📈 Индикаторы", "screens_indicators"),
+                ("📜 Правила", "screens_rules"),
+                ("🔗 Зависимости", "screens_dependencies")
+            ]
+            for name, key_sub in screen_subpages:
+                if st.button(name, key=f"nav_{key_sub}", use_container_width=True):
+                    st.session_state.page = key_sub
     else:
         if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
             st.session_state.page = key
@@ -198,6 +214,10 @@ elif current == "waves_setups":
 # --- Стратегии ---
 elif current == "strategies":
     render_editable_page("Стратегии")
+
+# --- Библиотека скринов ---
+elif current.startswith("screens"):
+    render_editable_page(f"Библиотека скринов — {current.split('_')[1].capitalize()}")
 
 # --- Калькуляторы ---
 elif current == "calculators":
