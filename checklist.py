@@ -58,18 +58,19 @@ def render_checklist_entry():
         st.markdown(f"<hr style='border:1px solid #ddd; margin:10px 0'>", unsafe_allow_html=True)
         st.markdown(f"<h4 style='font-weight:bold; color:#2e7d32; margin-bottom:5px;'>{section_name}</h4>", unsafe_allow_html=True)
         for key, (weight, hint, warning) in items.items():
+            # объединяем hint и warning только для hover
+            tooltip = f"{hint}\n{warning}" if warning else hint
+            
             checked = st.checkbox(
-                f"{key} ⚠️", 
+                f"{key}", 
                 value=st.session_state.checklist[key], 
-                help=f"{hint}\n{warning}" if warning else hint, 
+                help=tooltip,  # отображается только при наведении
                 key=key
             )
             st.session_state.checklist[key] = checked
             if checked:
                 total_score += weight
 
-            if warning:
-                st.markdown(f"<div style='color:#b30000; font-weight:bold; margin-left:20px;'>{warning}</div>", unsafe_allow_html=True)
 
     # --- Кнопка оценки сделки ---
     if st.button("📊 Оценить сделку"):
