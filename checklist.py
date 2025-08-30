@@ -35,7 +35,7 @@ CHECKLIST_SECTIONS = {
     }
 }
 
-MAX_SCORE = sum(weight for section in CHECKLIST_SECTIONS.values() for weight, _ in section.values())
+MAX_SCORE = sum(weight for section in CHECKLIST_SECTIONS.values() for weight, _, _ in section.values())
 
 def render_checklist_entry():
     st.markdown("<h2 style='text-align:center;'>🛡️ Чек-лист трейдера</h2>", unsafe_allow_html=True)
