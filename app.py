@@ -64,9 +64,9 @@ if not st.session_state.authenticated:
 PAGES = [
     ("🚀 Главная", "home"),
     ("🛡️ ВХОД в сделку", "checklist"),
+    ("🌊 Волновой анализ", "waves"),
     ("📊 Технический анализ", "ta"),
     ("📈 Индикаторы", "indicators"),
-    ("🌊 Волновой анализ", "waves"),
     ("🎯 Стратегии", "strategies"),
     ("🧮 Калькуляторы", "calculators"),
     ("🎲 Симулятор стратегий", "simulator"),
