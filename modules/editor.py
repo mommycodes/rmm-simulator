@@ -84,6 +84,9 @@ def render_editable_page(section_name: str):
             if st.button("❌", key=f"cancel_{section_name}"):
                 st.session_state.cancel_clicked = True
 
+        # Контейнер для сообщений
+        msg_container = st.empty()
+        
         # Редактор Quill
         current_html = st.session_state.blog_content.get(section_name, "")
         html = st_quill(value=current_html, html=True, placeholder="Введите текст…", key=f"quill_{section_name}")
