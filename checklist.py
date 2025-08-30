@@ -135,3 +135,4 @@ def render_checklist_entry():
     st.image("https://i.postimg.cc/rsPGT5JB/2025-08-09-113211.png", use_container_width=True)
     st.image("https://i.postimg.cc/s2KWVs3j/APTUSDT-P-2025-08-27-11-29-26-04e6f.png", use_container_width=True)
     st.image("https://i.postimg.cc/kXwWrhF8/image.png", use_container_width=True)
+    st.image("https://i.postimg.cc/2y13NSGP/APTUSDT-P-2025-08-29-19-31-48-04275.png", use_container_width=True)
