@@ -24,38 +24,50 @@ if "key_input" not in st.session_state:
 if "error_msg" not in st.session_state:
     st.session_state.error_msg = ""
 
-APP_KEY = os.getenv("APP_KEY") or st.secrets.get("APP_KEY")
+def get_app_key():
+    key = os.getenv("APP_KEY")
+    if key:
+        return key
+    try:
+        return st.secrets["APP_KEY"]
+    except Exception:
+        return None
+
+APP_KEY = get_app_key()
 
 if not st.session_state.authenticated:
-    st.title("🔑 Авторизация")
-    st.markdown(f"<h2 style='text-align:center;'>{'*'*len(st.session_state.key_input)}</h2>", unsafe_allow_html=True)
+    # Мобильные стили
+    st.markdown("""
+    <style>
+      .auth-card {max-width: 420px; margin: 8vh auto 0; padding: 16px;}
+      @media (max-width: 480px) {
+        .auth-card {margin-top: 6vh; padding: 12px;}
+      }
+    </style>
+    """, unsafe_allow_html=True)
 
-    rows = [
-        [1,2,3],
-        [4,5,6],
-        [7,8,9],
-        ["⌫",0,"✅"]
-    ]
+    if APP_KEY is None:
+        st.error("APP_KEY не найден. Установите его в .env или .streamlit/secrets.toml")
+        st.stop()
 
-    for row in rows:
-        cols = st.columns(3)
-        for i, val in enumerate(row):
-            if cols[i].button(str(val)):
-                if val == "⌫":
-                    st.session_state.key_input = st.session_state.key_input[:-1]
-                elif val == "✅":
-                    if st.session_state.key_input == APP_KEY:
-                        st.session_state.authenticated = True
-                        st.session_state.error_msg = ""
-                    else:
-                        st.session_state.error_msg = "Неверный ключ ❌"
-                        st.session_state.key_input = ""
-                else:
-                    st.session_state.key_input += str(val)
-
-    if st.session_state.error_msg:
-        st.error(st.session_state.error_msg)
-
+    with st.container():
+        st.markdown("<div class='auth-card'>", unsafe_allow_html=True)
+        st.markdown("### 🔑 Вход")
+        with st.form("auth_form", clear_on_submit=False):
+            pwd = st.text_input(
+                "Код доступа",
+                type="password",
+                placeholder="Введите код",
+                label_visibility="collapsed",
+            )
+            submitted = st.form_submit_button("Войти", use_container_width=True)
+        if submitted:
+            if pwd == APP_KEY:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Неверный код доступа ❌")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # -----------------------------
