@@ -5,6 +5,10 @@ import os
 from modules.calculators import render_rmm_calculators
 from modules.montecarlo import render_monte_carlo
 from modules.editor import render_editable_page
+from modules.markov_interface import render_markov_analysis
+from modules.pattern_analyzer import render_pattern_analyzer
+from modules.signal_detector import render_signal_detector
+from modules.coin_summary import render_coin_summary
 from dotenv import load_dotenv
 from checklist import render_checklist_entry
 
@@ -74,25 +78,31 @@ if not st.session_state.authenticated:
 # Константы навигации
 # -----------------------------
 PAGES = [
-    ("🚀 Главная", "home"),
-    ("🛡️ ВХОД в сделку", "checklist"),
     ("🌊 Волновой анализ", "waves"),
     ("📊 Технический анализ", "ta"),
     ("📈 Индикаторы", "indicators"),
     ("🎯 Стратегии", "strategies"),
     ("🖼️ Библиотека скринов", "screens"),
+]
+
+# Дополнительные инструменты в боковом меню
+SIDEBAR_TOOLS = [
     ("🧮 Калькуляторы", "calculators"),
     ("🎲 Симулятор стратегий", "simulator"),
+    ("🧠 Цепи Маркова", "markov"),
+    # ("🌊 Анализатор волн", "wave_analyzer"),
+    # ("📊 Анализ паттернов", "pattern_analyzer"),
+    # ("🔍 Детектор сигналов", "signal_detector"),
 ]
 
 if "page" not in st.session_state:
-    st.session_state.page = "home"
+    st.session_state.page = "coin_summary"
 
 
 # -----------------------------
 # Сайдбар: Кнопки разделов
 # -----------------------------
-st.sidebar.markdown("### 📚 Разделы")
+st.sidebar.markdown("### 📘 Материалы")
 
 for label, key in PAGES:
     if key == "ta":
@@ -146,13 +156,36 @@ for label, key in PAGES:
         if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
             st.session_state.page = key
 
+# Дополнительные инструменты
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🧭 Подготовка к сделке")
+col_a, col_b = st.sidebar.columns(2)
+with col_a:
+    if st.button("📘 Правила", key="nav_home_pre", use_container_width=True):
+        st.session_state.page = "home"
+with col_b:
+    if st.button("🛡️ ВХОД в сделку", key="nav_checklist_pre", use_container_width=True):
+        st.session_state.page = "checklist"
+
+# Сводка по монете — сюда
+if st.sidebar.button("🧭 Сводка по монете", key="nav_coin_summary_pre", use_container_width=True):
+    st.session_state.page = "coin_summary"
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🛠️ Инструменты")
+
+for label, key in SIDEBAR_TOOLS:
+    if st.sidebar.button(label, key=f"tool_{key}", use_container_width=True):
+        st.session_state.page = key
+
+st.sidebar.markdown("---")
 
 # -----------------------------
 # Рендер страниц
 # -----------------------------
 # app.py
 def render_home():
-    st.markdown("## 📘 Алгоритм манименеджмента")
+    st.markdown("## 📘 Правила трейдинга")
     st.info("✨ Рекомендованный базовый свод правил")
 
     rules = [
@@ -190,7 +223,8 @@ def render_home():
 current = st.session_state.page
 
 if current == "home":
-    render_home()
+    # Для совместимости: перенаправляем на сводку
+    render_coin_summary()
 # --- Тех. анализ ---
 elif current == "ta_general":
     render_editable_page("Технический анализ — Общие понятия")
@@ -210,6 +244,8 @@ elif current == "indicators":
     render_editable_page("Индикаторы")
 
 # --- Волновой анализ ---
+elif current == "waves":
+    render_editable_page("Волновой анализ")
 elif current == "waves_impulse":
     render_editable_page("Волновой анализ — Импульс")
 elif current == "waves_correction":
@@ -229,7 +265,12 @@ elif current == "strategies":
 
 # --- Библиотека скринов ---
 elif current.startswith("screens"):
-    render_editable_page(f"Библиотека скринов — {current.split('_')[1].capitalize()}")
+    # Безопасная обработка корневой страницы без суффикса
+    parts = current.split("_", 1)
+    if len(parts) == 1:
+        render_editable_page("Библиотека скринов")
+    else:
+        render_editable_page(f"Библиотека скринов — {parts[1].capitalize()}")
 
 # --- Калькуляторы ---
 elif current == "calculators":
@@ -243,6 +284,22 @@ elif current == "simulator":
 elif current == "checklist":
     render_checklist_entry()
 
+# --- Цепи Маркова ---
+elif current == "markov":
+    render_markov_analysis()
+
+# --- Дополнительные инструменты ---
+elif current == "wave_analyzer":
+    from modules.wave_analysis import WaveAnalysis
+    wave_analysis = WaveAnalysis()
+    wave_analysis.render_wave_analysis_interface()
+elif current == "pattern_analyzer":
+    render_pattern_analyzer()
+elif current == "signal_detector":
+    render_signal_detector()
+elif current == "coin_summary":
+    render_coin_summary()
+
 
 # === Контакты
 st.markdown("---")
@@ -252,10 +309,10 @@ st.markdown("""
     <img src='https://avatars.githubusercontent.com/u/134078363?v=4' width='60' height='60' style='border-radius: 50%; border: 2px solid #ccc;' />
     <div>
         <p style='margin: 0; font-size: 16px;'>
-            Разработчик: <b>@mommycodes39</b>  
+            Разработчик: <b>@mommycodes</b>  
         </p>
         <p style='margin: 0; font-size: 14px;'>
-            📬 Telegram: <a href='https://t.me/mommycodes39' target='_blank'>связаться</a> |
+            📬 Telegram: <a href='https://t.me/mommycodes' target='_blank'>связаться</a> |
             🐙 GitHub: <a href='https://github.com/mommycodes/rmm-simulator/issues' target='_blank'>создать issue</a>
         </p>
     </div>
