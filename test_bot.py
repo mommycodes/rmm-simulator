@@ -281,17 +281,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
 async def setup_menu_button(application):
-    """Настройка кнопки меню для авторизованных пользователей"""
+    """Убираем кнопку меню - она будет доступна только через команды"""
     try:
-        # Создаем кнопку меню с Web App
-        menu_button = MenuButtonWebApp(
-            text="🚀 START",
-            web_app=WebAppInfo(url=WEB_APP_URL)
-        )
-        
-        # Устанавливаем кнопку меню
-        await application.bot.set_chat_menu_button(menu_button=menu_button)
-        logger.info("Кнопка меню настроена успешно")
+        # Убираем кнопку меню - она доступна всем, а нам нужна только авторизованным
+        await application.bot.set_chat_menu_button(menu_button=None)
+        logger.info("Кнопка меню отключена - доступ только через команды")
     except Exception as e:
         logger.error(f"Ошибка настройки кнопки меню: {e}")
 
