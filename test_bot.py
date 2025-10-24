@@ -6,7 +6,7 @@ import os
 import json
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButton, MenuButtonWebApp
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения
@@ -163,6 +163,10 @@ async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     username = update.effective_user.username
     
+    logger.info(f"Команда add_user от пользователя {username} (ID: {user_id})")
+    logger.info(f"ADMIN_USERNAME: {ADMIN_USERNAME}")
+    logger.info(f"is_admin результат: {is_admin(user_id, username)}")
+    
     if not is_admin(user_id, username):
         await update.message.reply_text("🚫 У вас нет прав администратора!")
         return
@@ -247,6 +251,33 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     
     await update.message.reply_text(text, parse_mode='Markdown')
 
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик всех сообщений"""
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    
+    # Проверяем, авторизован ли пользователь
+    if not is_user_authorized(user_id, username):
+        await update.message.reply_text(
+            "🚫 **Доступ закрыт**\n\n"
+            "Обратитесь к администратору для получения доступа к боту.\n"
+            "📬 Контакт: @mommycodes",
+            parse_mode='Markdown'
+        )
+        return
+    
+    # Если пользователь авторизован, показываем главное меню
+    keyboard = [
+        [InlineKeyboardButton("🌐 Открыть сайт", web_app=WebAppInfo(url=WEB_APP_URL))]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "🎯 **Ваш персональный трейдинг-ассистент**\n\n✨ Готовы начать?",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
 async def setup_menu_button(application):
     """Настройка кнопки меню для авторизованных пользователей"""
     try:
@@ -284,6 +315,9 @@ def main():
     application.add_handler(CommandHandler("add_user", add_user))
     application.add_handler(CommandHandler("remove_user", remove_user))
     application.add_handler(CommandHandler("list_users", list_users))
+    
+    # Обработчик всех остальных сообщений
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     # Настраиваем кнопку меню при запуске
     application.post_init = setup_menu_button
