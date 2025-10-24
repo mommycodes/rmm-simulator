@@ -244,12 +244,14 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("📝 Список пользователей пуст.")
         return
     
-    text = "📝 **Список авторизованных пользователей:**\n\n"
+    text = "📝 Список авторизованных пользователей:\n\n"
     for i, user in enumerate(users, 1):
-        text += f"{i}. @{user.get('username', 'N/A')}\n"
-        text += f"   Добавлен: {user.get('added_by', 'N/A')}\n\n"
+        username = user.get('username', 'N/A')
+        added_by = user.get('added_by', 'N/A')
+        text += f"{i}. @{username}\n"
+        text += f"   Добавлен: {added_by}\n\n"
     
-    await update.message.reply_text(text, parse_mode='Markdown')
+    await update.message.reply_text(text)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик всех сообщений"""
@@ -318,6 +320,20 @@ def main():
     
     # Обработчик всех остальных сообщений
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # Обработчик ошибок
+    async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик ошибок"""
+        logger.error(f"Ошибка при обработке обновления: {context.error}")
+        if update and update.effective_message:
+            try:
+                await update.effective_message.reply_text(
+                    "❌ Произошла ошибка. Попробуйте позже или обратитесь к администратору."
+                )
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение об ошибке: {e}")
+    
+    application.add_error_handler(error_handler)
     
     # Настраиваем кнопку меню при запуске
     application.post_init = setup_menu_button
