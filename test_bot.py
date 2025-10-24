@@ -87,32 +87,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     
     keyboard = [
-        [InlineKeyboardButton("🧮 Калькуляторы", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=calculators"))],
-        [InlineKeyboardButton("📊 Технический анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=ta"))],
-        [InlineKeyboardButton("🌊 Волновой анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=waves"))],
-        [InlineKeyboardButton("🎲 Симулятор", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=simulator"))],
-        [InlineKeyboardButton("🧠 Цепи Маркова", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=markov"))],
-        [InlineKeyboardButton("🧭 Сводка по монете", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=coin_summary"))],
-        [InlineKeyboardButton("📋 Чек-лист", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=checklist"))],
+        [InlineKeyboardButton("🌐 Открыть сайт", web_app=WebAppInfo(url=WEB_APP_URL))]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     welcome_text = """
-🚀 **Добро пожаловать в RMM Trading Tools!**
+🎯 **RMM Trading Tools**
 
-**Доступные инструменты:**
+Добро пожаловать в профессиональную платформу для трейдеров!
 
-🧮 **Калькуляторы** - расчет рисков и объемов позиций
-📊 **Технический анализ** - материалы по техническому анализу
-🌊 **Волновой анализ** - теория волн Эллиота и практика
-🎲 **Симулятор** - тестирование торговых стратегий
-🧠 **Цепи Маркова** - анализ паттернов и прогнозирование
-🧭 **Сводка по монете** - быстрый анализ торгового инструмента
-📋 **Чек-лист** - подготовка к сделке
+✨ **Что вас ждет:**
+• 🧮 Калькуляторы рисков и объемов
+• 📊 Технический анализ и индикаторы  
+• 🌊 Волновой анализ Эллиота
+• 🎲 Симулятор торговых стратегий
+• 🧠 Анализ паттернов и прогнозирование
+• 🧭 Быстрый анализ инструментов
+• 📋 Чек-листы для подготовки к сделкам
 
-**🌐 Полный сайт:** https://mommycodes.streamlit.app
-
-Нажмите на кнопку ниже, чтобы открыть нужный инструмент!
+🚀 **Нажмите кнопку ниже для входа в систему**
     """
     
     await update.message.reply_text(
@@ -137,12 +130,12 @@ async def calculators(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     
     keyboard = [
-        [InlineKeyboardButton("🧮 Открыть калькуляторы", web_app=WebAppInfo(url=f"{WEB_APP_URL}?page=calculators"))]
+        [InlineKeyboardButton("🌐 Открыть сайт", web_app=WebAppInfo(url=WEB_APP_URL))]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "🧮 **Калькуляторы RMM**\n\nНажмите кнопку ниже для открытия калькуляторов:",
+        "🎯 **RMM Trading Tools**\n\n🚀 Нажмите кнопку ниже для входа в систему:",
         reply_markup=reply_markup,
         parse_mode='Markdown'
     )
@@ -266,7 +259,7 @@ async def setup_menu_button(application):
     try:
         # Создаем кнопку меню с Web App
         menu_button = MenuButtonWebApp(
-            text="🚀 RMM Tools",
+            text="🌐 RMM Tools",
             web_app=WebAppInfo(url=WEB_APP_URL)
         )
         
