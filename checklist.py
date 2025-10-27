@@ -56,7 +56,12 @@ def render_checklist_entry():
     for section_name, items in CHECKLIST_SECTIONS.items():
         st.markdown(f"<hr style='border:1px solid #ddd; margin:10px 0'>", unsafe_allow_html=True)
         st.markdown(f"<h4 style='font-weight:bold; color:#2e7d32; margin-bottom:5px;'>{section_name}</h4>", unsafe_allow_html=True)
-        for key, (weight, hint, warning) in items.items():
+        for key, item_data in items.items():
+            if len(item_data) == 3:
+                weight, hint, warning = item_data
+            else:
+                weight, hint = item_data
+                warning = None
             tooltip = f"{hint}\n{warning}" if warning else hint
             
             checked = st.checkbox(
