@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Простой скрипт для тестирования Telegram-бота
-"""
 import os
 import json
 import logging
@@ -9,29 +6,20 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения
 load_dotenv()
 
-# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# URL вашего сайта
 WEB_APP_URL = os.getenv('WEB_APP_URL')
-
-# Админ (только вы)
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
-ADMIN_USER_ID = None  # Будет установлен автоматически
-
-# Файл для хранения авторизованных пользователей
+ADMIN_USER_ID = None
 USERS_FILE = 'authorized_users.json'
 
-# Загружаем список авторизованных пользователей
 def load_authorized_users():
-    """Загружает список авторизованных пользователей"""
     try:
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, 'r', encoding='utf-8') as f:
@@ -42,7 +30,6 @@ def load_authorized_users():
         return []
 
 def save_authorized_users(users):
-    """Сохраняет список авторизованных пользователей"""
     try:
         with open(USERS_FILE, 'w', encoding='utf-8') as f:
             json.dump(users, f, ensure_ascii=False, indent=2)
@@ -52,15 +39,11 @@ def save_authorized_users(users):
         return False
 
 def is_user_authorized(user_id, username):
-    """Проверяет, авторизован ли пользователь"""
-    # Админ всегда авторизован
     if username == ADMIN_USERNAME:
         return True
     
-    # Загружаем список пользователей
     users = load_authorized_users()
     
-    # Проверяем по ID и username
     for user in users:
         if user.get('id') == user_id or user.get('username') == username:
             return True
@@ -68,15 +51,12 @@ def is_user_authorized(user_id, username):
     return False
 
 def is_admin(user_id, username):
-    """Проверяет, является ли пользователь админом"""
     return username == ADMIN_USERNAME
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик команды /start"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
-    # Проверяем доступ
     if not is_user_authorized(user_id, username):
         await update.message.reply_text(
             "🚫 **Доступ закрыт**\n\n"
@@ -108,11 +88,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 async def calculators(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Прямой доступ к калькуляторам"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
-    # Проверяем доступ
     if not is_user_authorized(user_id, username):
         await update.message.reply_text(
             "🚫 **Доступ закрыт**\n\n"
@@ -133,9 +111,7 @@ async def calculators(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         parse_mode='Markdown'
     )
 
-# АДМИНСКИЕ КОМАНДЫ
 async def admin_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Справка по админским командам"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
@@ -159,7 +135,6 @@ async def admin_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
 async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Добавить пользователя"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
@@ -177,16 +152,13 @@ async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     target_username = context.args[0].replace('@', '')
     
-    # Загружаем текущий список
     users = load_authorized_users()
     
-    # Проверяем, не добавлен ли уже
     for user in users:
         if user.get('username') == target_username:
             await update.message.reply_text(f"✅ Пользователь @{target_username} уже в списке!")
             return
     
-    # Добавляем пользователя
     new_user = {
         'username': target_username,
         'added_by': username,
@@ -200,7 +172,6 @@ async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("❌ Ошибка при сохранении пользователя!")
 
 async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Удалить пользователя"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
@@ -214,10 +185,8 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     
     target_username = context.args[0].replace('@', '')
     
-    # Загружаем текущий список
     users = load_authorized_users()
     
-    # Удаляем пользователя
     original_count = len(users)
     users = [user for user in users if user.get('username') != target_username]
     
@@ -230,7 +199,6 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(f"❌ Пользователь @{target_username} не найден в списке!")
 
 async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Список всех пользователей"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
@@ -254,11 +222,9 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await update.message.reply_text(text)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик всех сообщений"""
     user_id = update.effective_user.id
     username = update.effective_user.username
     
-    # Проверяем, авторизован ли пользователь
     if not is_user_authorized(user_id, username):
         await update.message.reply_text(
             "🚫 **Доступ закрыт**\n\n"
@@ -268,7 +234,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
     
-    # Если пользователь авторизован, показываем главное меню
     keyboard = [
         [InlineKeyboardButton("🌐 Открыть сайт", web_app=WebAppInfo(url=WEB_APP_URL))]
     ]
@@ -281,17 +246,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
 async def setup_menu_button(application):
-    """Убираем кнопку меню - она будет доступна только через команды"""
     try:
-        # Убираем кнопку меню - она доступна всем, а нам нужна только авторизованным
         await application.bot.set_chat_menu_button(menu_button=None)
         logger.info("Кнопка меню отключена - доступ только через команды")
     except Exception as e:
         logger.error(f"Ошибка настройки кнопки меню: {e}")
 
 def main():
-    """Запуск бота"""
-    # Получаем токен из переменных окружения
     bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     
     if not bot_token:
@@ -299,25 +260,19 @@ def main():
         print("Добавьте в .env файл: TELEGRAM_BOT_TOKEN=ваш_токен")
         return
     
-    # Создаем приложение
     application = Application.builder().token(bot_token).build()
     
-    # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("calculators", calculators))
     
-    # Админские команды
     application.add_handler(CommandHandler("admin_help", admin_help))
     application.add_handler(CommandHandler("add_user", add_user))
     application.add_handler(CommandHandler("remove_user", remove_user))
     application.add_handler(CommandHandler("list_users", list_users))
     
-    # Обработчик всех остальных сообщений
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    # Обработчик ошибок
     async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Обработчик ошибок"""
         logger.error(f"Ошибка при обработке обновления: {context.error}")
         if update and update.effective_message:
             try:
@@ -329,10 +284,8 @@ def main():
     
     application.add_error_handler(error_handler)
     
-    # Настраиваем кнопку меню при запуске
     application.post_init = setup_menu_button
     
-    # Запускаем бота
     logger.info("Запуск Telegram бота...")
     print("Бот запущен!")
     print("Админские команды:")

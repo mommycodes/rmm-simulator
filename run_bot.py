@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Скрипт для запуска Telegram-бота в фоновом режиме
-"""
 import os
 import sys
 import subprocess
@@ -9,7 +6,6 @@ import time
 from pathlib import Path
 
 def check_requirements():
-    """Проверяем наличие необходимых зависимостей"""
     try:
         import telegram
         import streamlit
@@ -21,7 +17,6 @@ def check_requirements():
         return False
 
 def check_env_vars():
-    """Проверяем наличие переменных окружения"""
     required_vars = ['TELEGRAM_BOT_TOKEN', 'WEB_APP_URL']
     missing_vars = []
     
@@ -38,7 +33,6 @@ def check_env_vars():
     return True
 
 def run_streamlit():
-    """Запускаем Streamlit приложение"""
     print("🚀 Запуск Streamlit приложения...")
     try:
         subprocess.Popen([
@@ -54,7 +48,6 @@ def run_streamlit():
         return False
 
 def run_telegram_bot():
-    """Запускаем Telegram-бота"""
     print("🤖 Запуск Telegram-бота...")
     try:
         subprocess.run([sys.executable, "telegram_bot.py"])
@@ -64,27 +57,21 @@ def run_telegram_bot():
         print(f"❌ Ошибка запуска бота: {e}")
 
 def main():
-    """Главная функция"""
     print("🎯 RMM Trading Tools - Telegram Bot Launcher")
     print("=" * 50)
     
-    # Проверяем зависимости
     if not check_requirements():
         sys.exit(1)
     
-    # Проверяем переменные окружения
     if not check_env_vars():
         sys.exit(1)
     
-    # Запускаем Streamlit в фоне
     if not run_streamlit():
         sys.exit(1)
     
-    # Ждем немного, чтобы Streamlit запустился
     print("⏳ Ожидание запуска Streamlit...")
     time.sleep(3)
     
-    # Запускаем бота
     run_telegram_bot()
 
 if __name__ == "__main__":

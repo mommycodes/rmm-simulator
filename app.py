@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import os
 
@@ -14,13 +13,8 @@ from checklist import render_checklist_entry
 
 load_dotenv()
 
-# -----------------------------
-# Общая конфигурация страницы
-# -----------------------------
 st.set_page_config(layout="wide", page_title="MOMMY CODES")
 
-
-# === Проверка ключа при входе ===
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "key_input" not in st.session_state:
@@ -40,7 +34,6 @@ def get_app_key():
 APP_KEY = get_app_key()
 
 if not st.session_state.authenticated:
-    # Мобильные стили
     st.markdown("""
     <style>
       .auth-card {max-width: 420px; margin: 8vh auto 0; padding: 16px;}
@@ -74,9 +67,6 @@ if not st.session_state.authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# -----------------------------
-# Константы навигации
-# -----------------------------
 PAGES = [
     ("🌊 Волновой анализ", "waves"),
     ("📊 Технический анализ", "ta"),
@@ -85,28 +75,19 @@ PAGES = [
     ("🖼️ Библиотека скринов", "screens"),
 ]
 
-# Дополнительные инструменты в боковом меню
 SIDEBAR_TOOLS = [
     ("🧮 Калькуляторы", "calculators"),
     ("🎲 Симулятор стратегий", "simulator"),
     ("🧠 Цепи Маркова", "markov"),
-    # ("🌊 Анализатор волн", "wave_analyzer"),
-    # ("📊 Анализ паттернов", "pattern_analyzer"),
-    # ("🔍 Детектор сигналов", "signal_detector"),
 ]
 
 if "page" not in st.session_state:
     st.session_state.page = "coin_summary"
 
-
-# -----------------------------
-# Сайдбар: Кнопки разделов
-# -----------------------------
 st.sidebar.markdown("### 📘 Материалы")
 
 for label, key in PAGES:
     if key == "ta":
-        # Подразделы Тех. анализа
         with st.sidebar.expander("📊 Технический анализ", expanded=(st.session_state.page.startswith("ta"))):
             if st.button("📘 Общие понятия", key="nav_ta_general", use_container_width=True):
                 st.session_state.page = "ta_general"
@@ -121,7 +102,6 @@ for label, key in PAGES:
             if st.button("🔷 Фигуры тех. анализа", key="nav_ta_patterns", use_container_width=True):
                 st.session_state.page = "ta_patterns"
     elif key == "waves":
-        # Подразделы Волн. анализа
         with st.sidebar.expander("🌊 Волновой анализ", expanded=(st.session_state.page.startswith("waves"))):
             if st.button("📈 Импульс", key="nav_waves_impulse", use_container_width=True):
                 st.session_state.page = "waves_impulse"
@@ -136,7 +116,6 @@ for label, key in PAGES:
             if st.button("🎯 Сетапы", key="nav_waves_setups", use_container_width=True):
                 st.session_state.page = "waves_setups"
     elif key == "screens":
-        # Подразделы Библиотеки скринов
         with st.sidebar.expander("🖼️ Библиотека скринов", expanded=(st.session_state.page.startswith("screens"))):
             screen_subpages = [
                 ("📊 Пятиволновки", "screens_5waves"),
@@ -156,7 +135,6 @@ for label, key in PAGES:
         if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True):
             st.session_state.page = key
 
-# Дополнительные инструменты
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🧭 Подготовка к сделке")
 col_a, col_b = st.sidebar.columns(2)
@@ -167,7 +145,6 @@ with col_b:
     if st.button("🛡️ ВХОД в сделку", key="nav_checklist_pre", use_container_width=True):
         st.session_state.page = "checklist"
 
-# Сводка по монете — сюда
 if st.sidebar.button("🧭 Сводка по монете", key="nav_coin_summary_pre", use_container_width=True):
     st.session_state.page = "coin_summary"
 
@@ -180,10 +157,6 @@ for label, key in SIDEBAR_TOOLS:
 
 st.sidebar.markdown("---")
 
-# -----------------------------
-# Рендер страниц
-# -----------------------------
-# app.py
 def render_home():
     st.markdown("## 📘 Правила трейдинга")
     st.info("✨ Рекомендованный базовый свод правил")
@@ -219,12 +192,10 @@ def render_home():
         unsafe_allow_html=True
     )
 
-# === Определяем текущую страницу ===
 current = st.session_state.page
 
 if current == "home":
     render_home()
-# --- Тех. анализ ---
 elif current == "ta_general":
     render_editable_page("Технический анализ — Общие понятия")
 elif current == "ta_candles":
@@ -237,12 +208,8 @@ elif current == "ta_ruler":
     render_editable_page("Технический анализ — Складной метр")
 elif current == "ta_patterns":
     render_editable_page("Технический анализ — Фигуры тех. анализа")
-
-# --- Индикаторы ---
 elif current == "indicators":
     render_editable_page("Индикаторы")
-
-# --- Волновой анализ ---
 elif current == "waves":
     render_editable_page("Волновой анализ")
 elif current == "waves_impulse":
@@ -257,37 +224,22 @@ elif current == "waves_wedges":
     render_editable_page("Волновой анализ — Клины")
 elif current == "waves_setups":
     render_editable_page("Волновой анализ — Сетапы")
-
-# --- Стратегии ---
 elif current == "strategies":
     render_editable_page("Стратегии")
-
-# --- Библиотека скринов ---
 elif current.startswith("screens"):
-    # Безопасная обработка корневой страницы без суффикса
     parts = current.split("_", 1)
     if len(parts) == 1:
         render_editable_page("Библиотека скринов")
     else:
         render_editable_page(f"Библиотека скринов — {parts[1].capitalize()}")
-
-# --- Калькуляторы ---
 elif current == "calculators":
     render_rmm_calculators()
-
-# --- Симулятор ---
 elif current == "simulator":
     render_monte_carlo()
-
-# --- Чеклист ---
 elif current == "checklist":
     render_checklist_entry()
-
-# --- Цепи Маркова ---
 elif current == "markov":
     render_markov_analysis()
-
-# --- Дополнительные инструменты ---
 elif current == "wave_analyzer":
     from modules.wave_analysis import WaveAnalysis
     wave_analysis = WaveAnalysis()
@@ -299,8 +251,6 @@ elif current == "signal_detector":
 elif current == "coin_summary":
     render_coin_summary()
 
-
-# === Контакты
 st.markdown("---")
 st.markdown("### 📬 Обратная связь")
 st.markdown("""

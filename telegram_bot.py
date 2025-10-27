@@ -4,22 +4,18 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения
 load_dotenv()
 
-# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Получаем токен бота из переменных окружения
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEB_APP_URL = os.getenv('WEB_APP_URL')
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик команды /start"""
     keyboard = [
         [InlineKeyboardButton("🧮 Калькуляторы", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
         [InlineKeyboardButton("📊 Технический анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}/ta"))],
@@ -30,17 +26,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     welcome_text = """
-🚀 **Добро пожаловать в RMM Trading Tools!**
+🎯 **Добро пожаловать в RMM Trading Tools!**
 
-Выберите нужный инструмент:
+Ваш персональный трейдинг-ассистент с полным набором инструментов для анализа и расчета рисков.
 
-🧮 **Калькуляторы** - расчет рисков и объемов
-📊 **Технический анализ** - материалы по ТА
-🌊 **Волновой анализ** - теория волн Эллиота
-🎲 **Симулятор** - тестирование стратегий
-🧠 **Цепи Маркова** - анализ паттернов
+**Доступные инструменты:**
+• 🧮 Калькуляторы входа и объема
+• 📊 Технический анализ
+• 🌊 Волновой анализ
+• 🎲 Симулятор стратегий
+• 🧠 Цепи Маркова
 
-Нажмите на кнопку ниже, чтобы открыть нужный инструмент!
+Выберите нужный инструмент из меню ниже ⬇️
     """
     
     await update.message.reply_text(
@@ -49,76 +46,105 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode='Markdown'
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик команды /help"""
-    help_text = """
-📚 **Доступные команды:**
-
-/start - Главное меню
-/help - Эта справка
-/calculators - Открыть калькуляторы
-/analysis - Открыть анализ
-
-🔧 **Инструменты:**
-• Калькулятор рисков
-• Калькулятор объемов по SL
-• Симулятор стратегий
-• Анализ паттернов
-    """
-    await update.message.reply_text(help_text, parse_mode='Markdown')
-
 async def calculators(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Прямой доступ к калькуляторам"""
     keyboard = [
-        [InlineKeyboardButton("🧮 Открыть калькуляторы", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))]
+        [InlineKeyboardButton("🧮 Калькулятор входа", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
+        [InlineKeyboardButton("📐 Калькулятор объема", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "🧮 **Калькуляторы RMM**\n\nНажмите кнопку ниже для открытия калькуляторов:",
+        "🧮 **Калькуляторы**\n\nВыберите нужный калькулятор:",
         reply_markup=reply_markup,
         parse_mode='Markdown'
     )
 
-async def analysis(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Доступ к аналитическим инструментам"""
+async def simulator(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("📊 Технический анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}/ta"))],
-        [InlineKeyboardButton("🌊 Волновой анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}/waves"))],
+        [InlineKeyboardButton("🎲 Симулятор Монте-Карло", web_app=WebAppInfo(url=f"{WEB_APP_URL}/simulator"))],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "🎲 **Симулятор стратегий**\n\nПротестируйте свою стратегию с помощью симулятора Монте-Карло:",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+async def markov(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
         [InlineKeyboardButton("🧠 Цепи Маркова", web_app=WebAppInfo(url=f"{WEB_APP_URL}/markov"))],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "📊 **Аналитические инструменты**\n\nВыберите тип анализа:",
+        "🧠 **Цепи Маркова**\n\nАнализ рыночных паттернов с помощью цепей Маркова:",
         reply_markup=reply_markup,
         parse_mode='Markdown'
     )
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    help_text = """
+🤖 **RMM Trading Tools - Справка**
+
+**Доступные команды:**
+• `/start` - Главное меню
+• `/calculators` - Калькуляторы
+• `/simulator` - Симулятор стратегий
+• `/markov` - Цепи Маркова
+• `/help` - Эта справка
+
+**Инструменты:**
+• 🧮 Калькуляторы входа и объема
+• 📊 Технический анализ
+• 🌊 Волновой анализ
+• 🎲 Симулятор Монте-Карло
+• 🧠 Анализ цепей Маркова
+
+**Поддержка:** @mommycodes
+    """
+    
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработчик нажатий на кнопки"""
     query = update.callback_query
     await query.answer()
+    
+    if query.data == "calculators":
+        await calculators(update, context)
+    elif query.data == "simulator":
+        await simulator(update, context)
+    elif query.data == "markov":
+        await markov(update, context)
 
-def main() -> None:
-    """Запуск бота"""
+def main():
     if not BOT_TOKEN:
-        logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
+        print("❌ TELEGRAM_BOT_TOKEN не найден в .env файле!")
         return
     
-    # Создаем приложение
+    if not WEB_APP_URL:
+        print("❌ WEB_APP_URL не найден в .env файле!")
+        return
+    
     application = Application.builder().token(BOT_TOKEN).build()
     
-    # Добавляем обработчики
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("calculators", calculators))
-    application.add_handler(CommandHandler("analysis", analysis))
+    application.add_handler(CommandHandler("simulator", simulator))
+    application.add_handler(CommandHandler("markov", markov))
+    application.add_handler(CommandHandler("help", help_command))
+    
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    # Запускаем бота
-    logger.info("Запуск Telegram бота...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    print("🤖 Telegram бот запущен!")
+    print("Для остановки нажмите Ctrl+C")
+    
+    try:
+        application.run_polling()
+    except KeyboardInterrupt:
+        print("\n🛑 Остановка бота...")
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
 
 if __name__ == '__main__':
     main()

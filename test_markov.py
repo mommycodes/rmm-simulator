@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Тестовый скрипт для демонстрации работы системы цепей Маркова
-"""
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -12,109 +9,151 @@ import pandas as pd
 import numpy as np
 
 def test_markov_system():
-    """Тестирование системы цепей Маркова"""
     print("🧠 Тестирование системы цепей Маркова для криптовалют")
     print("=" * 60)
     
-    # Создаем экземпляры
     data_fetcher = CryptoDataFetcher()
     markov_chain = CryptoMarkovChain()
     
     print("1. 📊 Загрузка данных...")
     
-    # Загружаем демо-данные
     data = data_fetcher.fetch_data('BTC-USD', '1y')
     
     if data is not None:
         print(f"   ✅ Загружено {len(data)} записей")
         print(f"   📈 Цена: ${data['Close'].iloc[0]:.2f} → ${data['Close'].iloc[-1]:.2f}")
         
-        print("\n2. 🔍 Определение состояний...")
+        print("\n2. 🔄 Обучение цепи Маркова...")
         
-        # Определяем состояния
-        states = markov_chain.define_states(data)
-        unique_states = list(set(states.values()))
+        markov_chain.train(data)
         
-        print(f"   ✅ Найдено {len(unique_states)} уникальных состояний")
-        print(f"   📋 Примеры состояний:")
-        for i, state in enumerate(unique_states[:5]):
-            description = markov_chain.get_state_description(state)
-            print(f"      {i+1}. {state}: {description}")
+        print("   ✅ Обучение завершено")
+        print(f"   📊 Состояний: {len(markov_chain.states)}")
+        print(f"   🔗 Переходов: {len(markov_chain.transitions)}")
         
-        print("\n3. 🔄 Построение матрицы переходов...")
+        print("\n3. 🔮 Генерация прогнозов...")
         
-        # Строим матрицу переходов
-        transition_matrix = markov_chain.build_transition_matrix(data)
+        predictions = markov_chain.predict(10)
         
-        print(f"   ✅ Матрица переходов построена ({transition_matrix.shape[0]}x{transition_matrix.shape[1]})")
+        print("   ✅ Прогнозы сгенерированы")
+        print("   📈 Следующие 10 дней:")
         
-        # Показываем статистику переходов
-        non_zero_transitions = np.count_nonzero(transition_matrix)
-        total_transitions = transition_matrix.size
-        print(f"   📊 Ненулевых переходов: {non_zero_transitions}/{total_transitions} ({non_zero_transitions/total_transitions:.1%})")
+        for i, pred in enumerate(predictions, 1):
+            print(f"      День {i}: {pred}")
         
-        print("\n4. 🔮 Тестирование прогнозирования...")
+        print("\n4. 📊 Анализ точности...")
         
-        # Тестируем прогнозирование
-        if unique_states:
-            test_state = unique_states[0]
-            print(f"   🎯 Тестируем прогноз из состояния: {test_state}")
-            print(f"   📝 Описание: {markov_chain.get_state_description(test_state)}")
+        accuracy = markov_chain.evaluate_accuracy(data)
+        
+        print(f"   ✅ Точность: {accuracy:.2%}")
+        
+        print("\n5. 🎯 Рекомендации...")
+        
+        recommendations = markov_chain.get_recommendations()
+        
+        print("   ✅ Рекомендации получены")
+        print("   💡 Рекомендации:")
+        
+        for rec in recommendations:
+            print(f"      • {rec}")
+        
+        print("\n6. 📈 Визуализация...")
+        
+        try:
+            markov_chain.plot_transitions()
+            print("   ✅ График переходов сохранен")
+        except Exception as e:
+            print(f"   ⚠️ Ошибка визуализации: {e}")
+        
+        print("\n7. 💾 Сохранение модели...")
+        
+        try:
+            markov_chain.save_model('markov_model.pkl')
+            print("   ✅ Модель сохранена")
+        except Exception as e:
+            print(f"   ⚠️ Ошибка сохранения: {e}")
+        
+        print("\n8. 🔄 Загрузка модели...")
+        
+        try:
+            new_markov = CryptoMarkovChain()
+            new_markov.load_model('markov_model.pkl')
+            print("   ✅ Модель загружена")
             
-            try:
-                predictions = markov_chain.predict_next_states(test_state, 5)
+            new_predictions = new_markov.predict(5)
+            print("   📈 Новые прогнозы:")
+            for i, pred in enumerate(new_predictions, 1):
+                print(f"      День {i}: {pred}")
                 
-                print(f"   ✅ Прогноз успешно сгенерирован:")
-                for pred in predictions:
-                    print(f"      Шаг {pred['step']}: {pred['state']} (вероятность: {pred['probability']:.1%})")
-                
-            except Exception as e:
-                print(f"   ❌ Ошибка при прогнозировании: {e}")
-        
-        print("\n5. 📊 Анализ частоты состояний...")
-        
-        # Анализируем частоту состояний
-        freq_data = markov_chain.analyze_state_frequency()
-        if not freq_data.empty:
-            print(f"   ✅ Анализ завершен:")
-            print(f"   🏆 Наиболее частое состояние: {freq_data.iloc[0]['Состояние']} ({freq_data.iloc[0]['Частота (%)']:.1f}%)")
-            print(f"   📉 Наименее частое состояние: {freq_data.iloc[-1]['Состояние']} ({freq_data.iloc[-1]['Частота (%)']:.1f}%)")
-        
-        print("\n6. 💡 Торговые сигналы...")
-        
-        # Генерируем торговые сигналы
-        if unique_states:
-            test_state = unique_states[0]
-            predictions = markov_chain.predict_next_states(test_state, 3)
-            
-            # Простой анализ сигналов
-            signals = []
-            for pred in predictions:
-                state = pred['state']
-                parts = state.split('_')
-                if len(parts) >= 4:
-                    trend = parts[0]
-                    rsi = parts[2]
-                    
-                    if trend == 'T2' and rsi == 'R0':  # Рост + перепроданность
-                        signals.append("🟢 ПОКУПКА")
-                    elif trend == 'T0' and rsi == 'R2':  # Падение + перекупленность
-                        signals.append("🔴 ПРОДАЖА")
-                    else:
-                        signals.append("⚪ НЕЙТРАЛЬНО")
-            
-            print(f"   📈 Торговые сигналы для состояния {test_state}:")
-            for i, signal in enumerate(signals):
-                print(f"      Шаг {i+1}: {signal}")
+        except Exception as e:
+            print(f"   ⚠️ Ошибка загрузки: {e}")
         
         print("\n" + "=" * 60)
-        print("✅ Тестирование завершено успешно!")
-        print("\n💡 Для полного функционала запустите:")
-        print("   streamlit run app.py")
-        print("   И перейдите в раздел '🧠 Цепи Маркова'")
+        print("🎉 Тестирование завершено успешно!")
         
     else:
-        print("❌ Не удалось загрузить данные")
+        print("   ❌ Не удалось загрузить данные")
+        print("   💡 Проверьте подключение к интернету")
+
+def test_advanced_features():
+    print("\n🔬 Тестирование расширенных функций")
+    print("=" * 60)
+    
+    data_fetcher = CryptoDataFetcher()
+    markov_chain = CryptoMarkovChain()
+    
+    print("1. 📊 Загрузка данных для разных символов...")
+    
+    symbols = ['BTC-USD', 'ETH-USD', 'ADA-USD']
+    
+    for symbol in symbols:
+        data = data_fetcher.fetch_data(symbol, '6mo')
+        if data is not None:
+            print(f"   ✅ {symbol}: {len(data)} записей")
+            
+            markov_chain.train(data)
+            predictions = markov_chain.predict(5)
+            
+            print(f"   📈 {symbol} прогнозы:")
+            for i, pred in enumerate(predictions, 1):
+                print(f"      День {i}: {pred}")
+        else:
+            print(f"   ❌ {symbol}: не удалось загрузить")
+    
+    print("\n2. 🔄 Тестирование разных периодов...")
+    
+    periods = ['1mo', '3mo', '6mo', '1y']
+    
+    for period in periods:
+        data = data_fetcher.fetch_data('BTC-USD', period)
+        if data is not None:
+            markov_chain.train(data)
+            accuracy = markov_chain.evaluate_accuracy(data)
+            print(f"   📊 {period}: точность {accuracy:.2%}")
+        else:
+            print(f"   ❌ {period}: не удалось загрузить")
+    
+    print("\n3. 🎯 Тестирование рекомендаций...")
+    
+    data = data_fetcher.fetch_data('BTC-USD', '1y')
+    if data is not None:
+        markov_chain.train(data)
+        recommendations = markov_chain.get_recommendations()
+        
+        print("   💡 Рекомендации:")
+        for rec in recommendations:
+            print(f"      • {rec}")
+    
+    print("\n" + "=" * 60)
+    print("🎉 Расширенное тестирование завершено!")
 
 if __name__ == "__main__":
-    test_markov_system()
+    try:
+        test_markov_system()
+        test_advanced_features()
+    except KeyboardInterrupt:
+        print("\n🛑 Тестирование прервано пользователем")
+    except Exception as e:
+        print(f"\n❌ Ошибка: {e}")
+        import traceback
+        traceback.print_exc()

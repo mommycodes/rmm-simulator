@@ -2,7 +2,6 @@ import streamlit as st
 import time
 from datetime import datetime, timedelta
 
-# === Конфигурация чек-листа с разделами и баллами ===
 CHECKLIST_SECTIONS = {
     "🌊 Волновой анализ": {
         "5 волн по канону (3 не самая короткая, чередование коррекций)": (20, "Основа сетапа"),
@@ -31,20 +30,18 @@ CHECKLIST_SECTIONS = {
     }
 }
 
-# Пороги для разных уровней торговли
 TRADING_LEVELS = {
     "Классика": 70,
     "Профессиональный": 90, 
     "Лудомания": 60
 }
 
-MAX_SCORE = sum(weight for section in CHECKLIST_SECTIONS.values() for weight, _, _ in section.values())
+MAX_SCORE = sum(weight for section in CHECKLIST_SECTIONS.values() for weight, *_ in section.values())
 
 def render_checklist_entry():
     st.markdown("<h2 style='text-align:center;'>🛡️ Чек-лист трейдера</h2>", unsafe_allow_html=True)
     st.caption("⚡ Заполни чек-лист, подожди 10 минут и только потом входи в сделку — не спеши, ликвидация всегда приходит незаметно")
 
-    # --- Инициализация состояния ---
     if "checklist" not in st.session_state:
         st.session_state.checklist = {key: False for section in CHECKLIST_SECTIONS.values() for key in section.keys()}
     if "evaluated" not in st.session_state:
@@ -54,7 +51,6 @@ def render_checklist_entry():
     if "timer_started" not in st.session_state:
         st.session_state.timer_started = False
 
-    # --- Чеклист ---
     st.markdown("### 📋 Отметь условия входа")
     total_score = 0
     for section_name, items in CHECKLIST_SECTIONS.items():
@@ -73,8 +69,6 @@ def render_checklist_entry():
             if checked:
                 total_score += weight
 
-
-    # --- Кнопка оценки сделки ---
     if st.button("📊 Оценить сделку"):
         st.session_state.evaluated = True
         percent = int((total_score / MAX_SCORE) * 100)
@@ -90,7 +84,6 @@ def render_checklist_entry():
 
         st.markdown(f"<h3 style='text-align:center;'>🎯 Баллы: <b>{total_score}/{MAX_SCORE}</b> ({percent}%)</h3>", unsafe_allow_html=True)
 
-        # --- Анализ по уровням торговли ---
         st.markdown("### 🎚️ Анализ по уровням торговли")
         
         col1, col2, col3 = st.columns(3)
@@ -134,7 +127,6 @@ def render_checklist_entry():
             </div>
             """, unsafe_allow_html=True)
 
-        # --- Общая рекомендация ---
         st.markdown("### 💡 Рекомендация")
         
         if total_score >= TRADING_LEVELS["Классика"]:
@@ -156,7 +148,6 @@ def render_checklist_entry():
             unsafe_allow_html=True
         )
         
-        # --- Дополнительная информация ---
         st.markdown("---")
         st.markdown("### 📋 Дополнительная информация")
         
@@ -169,7 +160,6 @@ def render_checklist_entry():
         else:
             st.info("👍 Хороший сетап, но можно улучшить")
 
-    # --- Таймер ---
     if all(st.session_state.checklist.values()):
         if not st.session_state.timer_started:
             if st.button("🚀 Запустить таймер ⏳"):
@@ -197,7 +187,6 @@ def render_checklist_entry():
         progress_container.empty()
         st.success("🚀 Все условия выполнены! Можно входить в сделку.")
 
-    # --- Примеры сделок ---
     st.markdown("### 📊 Примеры сделок")
     st.image("https://i.postimg.cc/rsPGT5JB/2025-08-09-113211.png", use_container_width=True)
     st.image("https://i.postimg.cc/C5zGr99C/APTUSDT-P-2025-09-09-20-18-27-b4ea3.png", use_container_width=True)
