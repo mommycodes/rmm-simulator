@@ -201,7 +201,7 @@ def render_home():
 
     for emoji, text in rules:
         st.markdown(
-            f"{emoji} {text}</div>",
+            f"{emoji} {text}",
             unsafe_allow_html=True
         )
 
@@ -223,8 +223,7 @@ def render_home():
 current = st.session_state.page
 
 if current == "home":
-    # Для совместимости: перенаправляем на сводку
-    render_coin_summary()
+    render_home()
 # --- Тех. анализ ---
 elif current == "ta_general":
     render_editable_page("Технический анализ — Общие понятия")
