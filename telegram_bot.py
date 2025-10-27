@@ -1,7 +1,8 @@
 import os
+import json
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, BotCommand
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,30 +15,59 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEB_APP_URL = os.getenv('WEB_APP_URL')
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+
+AUTHORIZED_USERS_FILE = 'authorized_users.json'
+
+def load_authorized_users():
+    try:
+        with open(AUTHORIZED_USERS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"users": [], "admin": ADMIN_USERNAME}
+
+def save_authorized_users(users_data):
+    with open(AUTHORIZED_USERS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users_data, f, ensure_ascii=False, indent=2)
+
+def is_authorized(user_id, username):
+    users_data = load_authorized_users()
+    return (str(user_id) in users_data["users"] or 
+            username in users_data["users"] or 
+            username == users_data["admin"])
+
+def is_admin(username):
+    users_data = load_authorized_users()
+    return username == users_data["admin"]
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    
+    if not is_authorized(user_id, username):
+        await update.message.reply_text(
+            "🚫 **Доступ закрыт**\n\nОбратитесь к администратору для получения доступа.\n\n**Администратор:** @mommycodes"
+        )
+        return
+    
     keyboard = [
-        [InlineKeyboardButton("🧮 Калькуляторы", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
-        [InlineKeyboardButton("📊 Технический анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}/ta"))],
-        [InlineKeyboardButton("🌊 Волновой анализ", web_app=WebAppInfo(url=f"{WEB_APP_URL}/waves"))],
-        [InlineKeyboardButton("🎲 Симулятор", web_app=WebAppInfo(url=f"{WEB_APP_URL}/simulator"))],
-        [InlineKeyboardButton("🧠 Цепи Маркова", web_app=WebAppInfo(url=f"{WEB_APP_URL}/markov"))],
+        [InlineKeyboardButton("🚀 START", web_app=WebAppInfo(url=WEB_APP_URL))]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     welcome_text = """
-🎯 **Добро пожаловать в RMM Trading Tools!**
+🎯 **Trading Tools**
 
 Ваш персональный трейдинг-ассистент с полным набором инструментов для анализа и расчета рисков.
 
 **Доступные инструменты:**
 • 🧮 Калькуляторы входа и объема
-• 📊 Технический анализ
+• 📊 Технический анализ и чек-лист
 • 🌊 Волновой анализ
 • 🎲 Симулятор стратегий
 • 🧠 Цепи Маркова
 
-Выберите нужный инструмент из меню ниже ⬇️
+Нажмите кнопку **🚀 START** для доступа к инструментам ⬇️
     """
     
     await update.message.reply_text(
@@ -46,76 +76,131 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         parse_mode='Markdown'
     )
 
-async def calculators(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("🧮 Калькулятор входа", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
-        [InlineKeyboardButton("📐 Калькулятор объема", web_app=WebAppInfo(url=f"{WEB_APP_URL}/calculators"))],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.effective_user.username
     
-    await update.message.reply_text(
-        "🧮 **Калькуляторы**\n\nВыберите нужный калькулятор:",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
+    if not is_admin(username):
+        await update.message.reply_text("❌ У вас нет прав администратора!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("❌ Укажите username пользователя!\nПример: `/add_user @username`")
+        return
+    
+    new_user = context.args[0].replace('@', '')
+    users_data = load_authorized_users()
+    
+    if new_user in users_data["users"]:
+        await update.message.reply_text(f"✅ Пользователь @{new_user} уже авторизован!")
+        return
+    
+    users_data["users"].append(new_user)
+    save_authorized_users(users_data)
+    
+    await update.message.reply_text(f"✅ Пользователь @{new_user} добавлен в список авторизованных!")
 
-async def simulator(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("🎲 Симулятор Монте-Карло", web_app=WebAppInfo(url=f"{WEB_APP_URL}/simulator"))],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.effective_user.username
     
-    await update.message.reply_text(
-        "🎲 **Симулятор стратегий**\n\nПротестируйте свою стратегию с помощью симулятора Монте-Карло:",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
+    if not is_admin(username):
+        await update.message.reply_text("❌ У вас нет прав администратора!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text("❌ Укажите username пользователя!\nПример: `/remove_user @username`")
+        return
+    
+    user_to_remove = context.args[0].replace('@', '')
+    users_data = load_authorized_users()
+    
+    if user_to_remove not in users_data["users"]:
+        await update.message.reply_text(f"❌ Пользователь @{user_to_remove} не найден в списке!")
+        return
+    
+    users_data["users"].remove(user_to_remove)
+    save_authorized_users(users_data)
+    
+    await update.message.reply_text(f"✅ Пользователь @{user_to_remove} удален из списка авторизованных!")
 
-async def markov(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("🧠 Цепи Маркова", web_app=WebAppInfo(url=f"{WEB_APP_URL}/markov"))],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.effective_user.username
     
-    await update.message.reply_text(
-        "🧠 **Цепи Маркова**\n\nАнализ рыночных паттернов с помощью цепей Маркова:",
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
+    if not is_admin(username):
+        await update.message.reply_text("❌ У вас нет прав администратора!")
+        return
+    
+    users_data = load_authorized_users()
+    users_list = "\n".join([f"• @{user}" for user in users_data["users"]])
+    
+    message = f"👥 **Авторизованные пользователи:**\n\n{users_list}\n\n**Администратор:** @{users_data['admin']}"
+    
+    await update.message.reply_text(message)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    help_text = """
-🤖 **RMM Trading Tools - Справка**
+    username = update.effective_user.username
+    
+    if is_admin(username):
+        help_text = """
+🤖 **RMM Trading Tools - Админ панель**
+
+**Пользовательские команды:**
+• `/start` - Главное меню
+• `/help` - Эта справка
+
+**Админ команды:**
+• `/add_user @username` - Добавить пользователя
+• `/remove_user @username` - Удалить пользователя
+• `/list_users` - Список пользователей
+
+**Поддержка:** @mommycodes
+        """
+    else:
+        help_text = """
+🤖 **RMM Trading Tools**
 
 **Доступные команды:**
 • `/start` - Главное меню
-• `/calculators` - Калькуляторы
-• `/simulator` - Симулятор стратегий
-• `/markov` - Цепи Маркова
 • `/help` - Эта справка
 
-**Инструменты:**
-• 🧮 Калькуляторы входа и объема
-• 📊 Технический анализ
-• 🌊 Волновой анализ
-• 🎲 Симулятор Монте-Карло
-• 🧠 Анализ цепей Маркова
+**Поддержка:** @mommycodes
+        """
+    
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    username = update.effective_user.username
+    
+    if is_admin(username):
+        help_text = """
+🤖 **Trading Tools - Админ панель**
+
+**Пользовательские команды:**
+• `/start` - Главное меню
+• `/help` - Эта справка
+
+**Админ команды:**
+• `/add_user @username` - Добавить пользователя
+• `/remove_user @username` - Удалить пользователя
+• `/list_users` - Список пользователей
 
 **Поддержка:** @mommycodes
-    """
+        """
+    else:
+        help_text = """
+🤖 **Trading Tools**
+
+**Доступные команды:**
+• `/start` - Главное меню
+• `/help` - Эта справка
+
+**Поддержка:** @mommycodes
+        """
     
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    
-    if query.data == "calculators":
-        await calculators(update, context)
-    elif query.data == "simulator":
-        await simulator(update, context)
-    elif query.data == "markov":
-        await markov(update, context)
 
 def main():
     if not BOT_TOKEN:
@@ -129,14 +214,24 @@ def main():
     application = Application.builder().token(BOT_TOKEN).build()
     
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("calculators", calculators))
-    application.add_handler(CommandHandler("simulator", simulator))
-    application.add_handler(CommandHandler("markov", markov))
+    application.add_handler(CommandHandler("add_user", add_user))
+    application.add_handler(CommandHandler("remove_user", remove_user))
+    application.add_handler(CommandHandler("list_users", list_users))
     application.add_handler(CommandHandler("help", help_command))
-    
     application.add_handler(CallbackQueryHandler(button_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
-    print("🤖 Telegram бот запущен!")
+    commands = [
+        BotCommand("start", "🚀 Главное меню"),
+        BotCommand("help", "❓ Справка")
+    ]
+    
+    async def post_init(application):
+        await application.bot.set_my_commands(commands)
+    
+    application.post_init = post_init
+    
+    print("🤖 Telegram бот с авторизацией запущен!")
     print("Для остановки нажмите Ctrl+C")
     
     try:
